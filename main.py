@@ -6,6 +6,7 @@ import uuid
 import logging
 import traceback
 import threading
+import html
 from aiohttp import web
 from aiogram import Bot, Dispatcher, Router, F
 from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
@@ -22,24 +23,25 @@ logging.basicConfig(
 )
 
 # ================= الإعدادات العامة =================
-BOT_TOKEN = "8395651089:AAEfbnpVCy0AJL2pI1X57Zlv5cP7CySOo5s"  # ضع توكن البوت هنا
-ADMIN_ID = 8410208108  # ضع معرفك الرقمي هنا
-DB_FILE = "data.json"
-UPLOADS_DIR = "uploads"
+# أمان: القراءة من متغيرات البيئة أولاً
+BOT_TOKEN = os.environ.get("BOT_TOKEN", "8395651089:AAEfbnpVCy0AJL2pI1X57Zlv5cP7CySOo5s") # ضع التوكن في Environment Variables في Render
+ADMIN_ID = int(os.environ.get("ADMIN_ID", "8410208108"))
+DB_FILE = os.environ.get("DB_FILE", "data.json")
+UPLOADS_DIR = os.environ.get("UPLOADS_DIR", "uploads")
 
-# قفل لمنع التداخل أثناء القراءة والكتابة
-_data_lock = threading.Lock()
+# إصلاح الخطأ القاتل: استخدام RLock لمنع الجمود (Deadlock)
+_data_lock = threading.RLock()
 
+# إنشاء المجلد بأمان
 try:
-    if not os.path.exists(UPLOADS_DIR):
-        os.makedirs(UPLOADS_DIR)
+    os.makedirs(UPLOADS_DIR, exist_ok=True)
 except Exception as e:
-    logging.warning(f"تعذر إنشاء مجلد الرفعات: {e} - main.py:37")
+    logging.warning(f"تعذر إنشاء مجلد الرفعات: {e}")
 
 DEFAULT_LOGO = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyMDAiIGZpbGw9IiMwRjBGMEYiLz48Y2lyY2xlIGN4PSIxMDAiIGN5PSIxMDAiIHI9IjkwIiBzdHJva2U9IiNDOUE5NjEiIHN0cm9rZS13aWR0aD0iMyIvPjxwYXRoIGQ9Ik02MCA2MEwxMDAgODBMMTQwIDYwVjE0MEwxMDAgMTIwTDYwIDE0MFoiIGZpbGw9IiNDOUE5NjEiLz48cmVjdCB4PSI5NiIgeT0iNjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgwIiBmaWxsPSIjMEYwRjBGIi8+PC9zdmc+"
 
 # ==========================================
-# 1. وحدة قاعدة البيانات (المشتركة)
+# 1. وحدة قاعدة البيانات (المشتركة) - تم إصلاحها بالكامل
 # ==========================================
 class Database:
     def __init__(self):
@@ -56,20 +58,23 @@ class Database:
                         self._memory_db = json.load(f)
                         return self._memory_db
                 except Exception:
-                    logging.warning("ملف البيانات تالف. سيتم إنشاء بيانات افتراضية. - main.py:59")
+                    logging.warning("ملف البيانات تالف. سيتم إنشاء بيانات افتراضية.")
             
             self._memory_db = self._default_data()
-            self.save(self._memory_db)
+            self._write_to_disk(self._memory_db) # إصلاح: كتابة مباشرة بدل استدعاء save لتفادي الجمود
             return self._memory_db
 
     def save(self, data):
         with _data_lock:
             self._memory_db = data
-            try:
-                with open(DB_FILE, 'w', encoding='utf-8') as f:
-                    json.dump(data, f, ensure_ascii=False, indent=4)
-            except Exception:
-                logging.warning("تعذر الكتابة على القرص. سيتم استخدام الذاكرة المؤقتة. - main.py:72")
+            self._write_to_disk(data)
+
+    def _write_to_disk(self, data):
+        try:
+            with open(DB_FILE, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=4)
+        except Exception:
+            logging.warning("تعذر الكتابة على القرص. سيتم استخدام الذاكرة المؤقتة.")
 
     def _default_data(self):
         return {
@@ -101,7 +106,7 @@ class Database:
 db = Database()
 
 # ==========================================
-# 2. وحدة الموقع (Web Server & HTML Templates)
+# 2. وحدة الموقع (Web Server & HTML Templates) - واجهة متطورة جداً
 # ==========================================
 class WebServer:
     def __init__(self, db_instance):
@@ -128,6 +133,7 @@ class WebServer:
 """
 
     def _get_main_template(self):
+        # تمت إزالة تأثير الماوس السحبي بالكامل (cursor-dot & outline) وإضافة واجهة حديثة جداً
         return """
 <!DOCTYPE html>
 <html lang="ar" dir="rtl" data-theme="dark">
@@ -135,13 +141,20 @@ class WebServer:
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <meta name="description" content="مكتبة الشاغور الحديثة - وجهتك الأولى للقرطاسية والمستلزمات الفنية والمكتبية في سوريا">
+    <!-- تحسين محركات البحث SEO -->
+    <meta property="og:title" content="مكتبة الشاغور الحديثة">
+    <meta property="og:description" content="وجهتك الأولى للقرطاسية والمستلزمات الفنية في سوريا">
+    <meta property="og:image" content="%LOGO_URL%">
+    <meta property="og:type" content="website">
     <title>مكتبة الشاغور الحديثة | Al-Shaghour Modern Library</title>
     <link rel="icon" href="%ICON_URL%" type="image/x-icon">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@200;400;600;800&family=Amiri:wght@400;700&family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
     <style>
         :root {
             --primary-gold: #C9A961; --primary-gold-light: #E5C77C; --primary-gold-dark: #9B7D3F;
@@ -157,15 +170,11 @@ class WebServer:
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html { scroll-behavior: smooth; }
         body { background: var(--dark-bg); color: var(--text-light); font-family: 'Cairo', sans-serif; transition: background 0.5s, color 0.5s; overflow-x: hidden; }
-        body.no-cursor { cursor: none; }
-        
-        .cursor-dot { position: fixed; width: 6px; height: 6px; background: var(--primary-gold); border-radius: 50%; pointer-events: none; z-index: 9999; transition: transform 0.1s; mix-blend-mode: difference; opacity: 0; }
-        .cursor-outline { position: fixed; width: 30px; height: 30px; border: 1px solid var(--primary-gold); border-radius: 50%; pointer-events: none; z-index: 9998; transition: all 0.2s; opacity: 0; }
         
         #particles-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
         .scroll-progress { position: fixed; top: 0; left: 0; width: 0%; height: 3px; background: linear-gradient(90deg, var(--primary-gold-dark), var(--primary-gold-light)); z-index: 1002; transition: width 0.1s; }
         
-        /* ===== واجهة التحميل المتطورة (Developer / Cyberpunk Style) ===== */
+        /* ===== واجهة التحميل المتطورة (Cyberpunk / Developer Style) ===== */
         .dev-loader { position: fixed; inset: 0; background: #050505; z-index: 10000; display: flex; justify-content: center; align-items: center; flex-direction: column; transition: opacity 0.8s ease, visibility 0.8s ease; overflow: hidden; }
         .dev-loader.hidden { opacity: 0; visibility: hidden; }
         .dev-loader::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(transparent 90%, rgba(201, 169, 97, 0.05) 80%); background-size: 100% 4px; animation: scanlines 8s linear infinite; pointer-events: none; }
@@ -189,7 +198,7 @@ class WebServer:
         .dev-progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, transparent, var(--primary-gold), var(--primary-gold-light)); box-shadow: 0 0 15px var(--primary-gold); transition: width 0.2s ease-out; }
         .dev-percent { text-align: right; color: #fff; font-size: 12px; margin-top: 5px; display: block; }
         
-        /* ===== شريط الإعلان المتطور (Modern Neon Marquee) ===== */
+        /* ===== شريط الإعلان المتطور ===== */
         .top-bar { position: fixed; top: 0; left: 0; width: 100%; z-index: 1001; background: linear-gradient(90deg, #0f0f0f, #1a1a1a, #0f0f0f); border-bottom: 1px solid var(--border-color); box-shadow: 0 2px 15px rgba(0,0,0,0.5); overflow: hidden; height: 35px; display: flex; align-items: center; }
         .top-bar::before, .top-bar::after { content: ''; position: absolute; top: 0; width: 80px; height: 100%; z-index: 2; pointer-events: none; }
         .top-bar::before { left: 0; background: linear-gradient(to right, #0f0f0f, transparent); }
@@ -205,7 +214,7 @@ class WebServer:
         @keyframes modern-marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
         @keyframes pulse-icon { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
         
-        /* ===== شريط التنقل والأزرار ===== */
+        /* ===== شريط التنقل ===== */
         .navbar { position: fixed; top: 35px; left: 0; width: 100%; z-index: 1000; background: var(--glass-bg); backdrop-filter: blur(15px); border-bottom: 1px solid var(--border-color); transition: top 0.4s; }
         .navbar.hide-nav { top: -65px; }
         .nav-container { max-width: 1400px; margin: 0 auto; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; }
@@ -215,6 +224,13 @@ class WebServer:
         .logo-text h1 { font-family: 'Amiri', serif; font-size: clamp(16px, 3vw, 22px); color: var(--primary-gold); line-height: 1.2; }
         .logo-text p { font-size: 9px; color: var(--text-muted); letter-spacing: 1px; }
         .nav-actions { display: flex; gap: 10px; align-items: center; }
+        
+        /* شريط البحث الحديث (ميزة مضافة) */
+        .search-box { position: relative; display: flex; align-items: center; }
+        .search-box input { background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 20px; padding: 5px 15px; color: var(--text-light); font-family: 'Cairo'; font-size: 12px; outline: none; width: 120px; transition: width 0.3s; }
+        .search-box input:focus { width: 200px; border-color: var(--primary-gold); }
+        .search-box i { position: absolute; right: 10px; color: var(--text-muted); font-size: 12px; pointer-events: none; }
+        
         .theme-toggle, .mobile-btn { background: none; border: 1px solid var(--border-color); color: var(--text-light); width: 35px; height: 35px; border-radius: 50%; font-size: 14px; transition: 0.3s; display: flex; justify-content: center; align-items: center; z-index: 1001; cursor: pointer; }
         .theme-toggle:hover { background: var(--primary-gold); color: #fff; transform: rotate(180deg); }
         .mobile-btn { display: flex; flex-direction: column; gap: 4px; border: none; cursor: pointer; }
@@ -307,14 +323,21 @@ class WebServer:
         .video-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; pointer-events: none; }
         .video-overlay h2 { font-family: 'Amiri', serif; font-size: clamp(28px, 5vw, 40px); color: #fff; text-shadow: 0 4px 15px rgba(0,0,0,0.8); }
         
-        /* ===== زر الروبوت العائم (بدون طرق التواصل - فقط العودة للأعلى أو القائمة) ===== */
-        .fab-container { position: fixed; bottom: 20px; left: 20px; z-index: 9999; display: flex; flex-direction: column; align-items: center; gap: 10px; }
-        .fab-robot { width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(145deg, var(--primary-gold-dark), var(--primary-gold-light)); border: none; color: #0f0f0f; font-size: 22px; cursor: pointer; box-shadow: 0 5px 20px rgba(201, 169, 97, 0.6); transition: all 0.3s ease; display: flex; justify-content: center; align-items: center; animation: float 3s ease-in-out infinite; position: relative; z-index: 10; }
+        /* ===== زر الروبوت العائم (FAB) - تم إصلاحه ليصبح قائمة تواصل متطورة ===== */
+        .fab-container { position: fixed; bottom: 20px; left: 20px; z-index: 9999; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+        .fab-robot { width: 55px; height: 55px; border-radius: 50%; background: linear-gradient(145deg, var(--primary-gold-dark), var(--primary-gold-light)); border: none; color: #0f0f0f; font-size: 24px; cursor: pointer; box-shadow: 0 5px 20px rgba(201, 169, 97, 0.6); transition: all 0.3s ease; display: flex; justify-content: center; align-items: center; animation: float 3s ease-in-out infinite; position: relative; z-index: 10; }
         .fab-robot:hover { transform: scale(1.1) rotate(10deg); box-shadow: 0 8px 25px rgba(201, 169, 97, 0.9); }
-        .fab-robot.active { animation: none; transform: scale(0.9); }
+        .fab-robot.active { animation: none; transform: rotate(135deg); background: #e74c3c; color: #fff; }
         @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-8px); } }
         
-        .back-to-top { position: fixed; bottom: 20px; right: 20px; width: 40px; height: 40px; background: var(--primary-gold); color: #000; border: none; border-radius: 50%; font-size: 16px; opacity: 0; transition: all 0.4s; transform: scale(0.5); cursor: pointer; z-index: 999; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 15px rgba(201, 169, 97, 0.4); }
+        .fab-menu-items { display: flex; flex-direction: column; gap: 10px; margin-bottom: 5px; opacity: 0; transform: translateY(20px) scale(0.8); pointer-events: none; transition: all 0.3s ease; }
+        .fab-menu-items.active { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+        .fab-menu-item { width: 45px; height: 45px; border-radius: 50%; background: var(--dark-bg-2); border: 1px solid var(--primary-gold); color: var(--primary-gold); display: flex; justify-content: center; align-items: center; text-decoration: none; font-size: 18px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); transition: all 0.3s; position: relative; }
+        .fab-menu-item:hover { background: var(--primary-gold); color: #000; transform: scale(1.1); }
+        .fab-menu-item::after { content: attr(data-tooltip); position: absolute; left: 60px; background: #000; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.3s; font-family: 'Cairo'; }
+        .fab-menu-item:hover::after { opacity: 1; }
+        
+        .back-to-top { position: fixed; bottom: 20px; right: 20px; width: 45px; height: 45px; background: var(--primary-gold); color: #000; border: none; border-radius: 50%; font-size: 18px; opacity: 0; transition: all 0.4s; transform: scale(0.5); cursor: pointer; z-index: 999; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 15px rgba(201, 169, 97, 0.4); }
         .back-to-top.visible { opacity: 1; transform: scale(1); }
         .back-to-top:hover { background: var(--primary-gold-light); transform: translateY(-3px); }
         
@@ -328,12 +351,12 @@ class WebServer:
             .products-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
             .product-img { height: 100px; }
             .glow-card { border-radius: 12px; }
+            .search-box input { width: 100px; }
+            .search-box input:focus { width: 140px; }
         }
     </style>
 </head>
-<body class="no-cursor">
-    <div class="cursor-dot" id="cursorDot"></div>
-    <div class="cursor-outline" id="cursorOutline"></div>
+<body>
     <canvas id="particles-bg"></canvas>
     <div class="scroll-progress" id="scrollProgress"></div>
     
@@ -358,7 +381,7 @@ class WebServer:
         </div>
     </div>
 
-    <!-- شريط الإعلان المتطور Modern Marquee -->
+    <!-- شريط الإعلان المتطور -->
     <div class="top-bar">
         <div class="marquee-wrapper" id="marqueeWrapper">
             <div class="marquee-content">
@@ -380,6 +403,10 @@ class WebServer:
                 </div>
             </div>
             <div class="nav-actions">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="ابحث عن منتج..." oninput="searchProducts()">
+                    <i class="fas fa-search"></i>
+                </div>
                 <button class="theme-toggle" id="themeToggle"><i class="fas fa-moon"></i></button>
                 <button class="mobile-btn" id="mobileBtn"><span></span><span></span><span></span></button>
             </div>
@@ -454,16 +481,22 @@ class WebServer:
         </section>
     </div>
     
-    <!-- زر الروبوت العائم (بدون قائمة التواصل) -->
+    <!-- زر الروبوت العائم (قائمة تواصل) - تم الإصلاح -->
     <div class="fab-container">
-        <button class="fab-robot" id="fabRobot" title="العودة للأعلى">
-            <i class="fas fa-robot" id="fabIcon"></i>
+        <div class="fab-menu-items" id="fabMenu">
+            <a href="https://wa.me/%WHATSAPP%" target="_blank" class="fab-menu-item" data-tooltip="واتساب"><i class="fab fa-whatsapp"></i></a>
+            <a href="https://instagram.com/%INSTAGRAM%" target="_blank" class="fab-menu-item" data-tooltip="إنستغرام"><i class="fab fa-instagram"></i></a>
+            <a href="mailto:%GMAIL%" class="fab-menu-item" data-tooltip="جيميل"><i class="fas fa-envelope"></i></a>
+            <button class="fab-menu-item" onclick="scrollTo({top:0,behavior:'smooth'})" data-tooltip=" للأعلى"><i class="fas fa-arrow-up"></i></button>
+        </div>
+        <button class="fab-robot" id="fabRobot" title="قائمة التواصل">
+            <i class="fas fa-plus" id="fabIcon"></i>
         </button>
     </div>
 
     <button class="back-to-top" id="backToTop" title="للأعلى"><i class="fas fa-arrow-up"></i></button>
 
-    <script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     <script>
         // ===== منطق واجهة التحميل المتطورة =====
         let devProgress = 0; 
@@ -483,32 +516,9 @@ class WebServer:
                 devBarFill.style.width = devProgress + '%';
             } 
         }, 200);
-        // Fallback
         setTimeout(() => { devLoader.classList.add('hidden'); }, 5000);
 
-        // ===== المؤشر المخصص =====
-        const dot = document.getElementById('cursorDot'); 
-        const outline = document.getElementById('cursorOutline');
-        if (window.innerWidth > 768) {
-            let mx=0, my=0, ox=0, oy=0;
-            document.addEventListener('mousemove', e => { 
-                mx=e.clientX; my=e.clientY; 
-                dot.style.opacity = 1; outline.style.opacity = 1; 
-                dot.style.left=mx+'px'; dot.style.top=my+'px'; 
-            });
-            function animCursor(){ 
-                ox+=(mx-ox)*0.15; oy+=(my-oy)*0.15; 
-                outline.style.left=ox+'px'; outline.style.top=oy+'px'; 
-                requestAnimationFrame(animCursor); 
-            } 
-            animCursor();
-        } else { 
-            document.body.classList.remove('no-cursor'); 
-            dot.style.display = 'none';
-            outline.style.display = 'none';
-        }
-
-        // ===== الجزيئات =====
+        // ===== الجزيئات (WebGL / Canvas) =====
         const canvas=document.getElementById('particles-bg'); const ctx=canvas.getContext('2d'); let p=[];
         function res(){canvas.width=innerWidth;canvas.height=innerHeight;} res(); addEventListener('resize',res);
         class P{constructor(){this.x=Math.random()*canvas.width;this.y=Math.random()*canvas.height;this.s=Math.random()*2+1;this.sx=Math.random()*0.5-0.25;this.sy=Math.random()*0.5-0.25;}u(){this.x+=this.sx;this.y+=this.sy;if(this.x<0||this.x>canvas.width)this.sx*=-1;if(this.y<0||this.y>canvas.height)this.sy*=-1;}d(){ctx.fillStyle='rgba(201,169,97,0.5)';ctx.beginPath();ctx.arc(this.x,this.y,this.s,0,Math.PI*2);ctx.fill();}}
@@ -527,10 +537,12 @@ class WebServer:
         btn.addEventListener('click', () => { btn.classList.toggle('active'); menu.classList.toggle('active'); });
         function closeMenu() { btn.classList.remove('active'); menu.classList.remove('active'); }
 
-        const obs = new IntersectionObserver((e)=>{e.forEach(el=>{if(el.isIntersecting)el.target.classList.add('active');})},{threshold:0.1});
+        // ===== GSAP Animations =====
+        gsap.registerPlugin(ScrollTrigger);
+        const obs = new IntersectionObserver((e)=>{e.forEach(el=>{if(el.isIntersecting){el.target.classList.add('active'); gsap.from(el.target.children, {opacity:0, y:30, duration:0.8, stagger:0.2});}})},{threshold:0.1});
         document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
 
-        new Swiper('.main-slider', {loop:true, autoplay:{delay:4000}, effect:'slide', pagination:{el:'.swiper-pagination'}});
+        new Swiper('.main-slider', {loop:true, autoplay:{delay:4000}, effect:'fade', fadeEffect: { crossFade: true }, pagination:{el:'.swiper-pagination'}});
         new Swiper('.cat-swiper', {slidesPerView:1, spaceBetween:20, loop:true, autoplay:{delay:3000}, breakpoints:{640:{slidesPerView:2},992:{slidesPerView:3},1200:{slidesPerView:4}}, navigation:{nextEl:'.swiper-button-next',prevEl:'.swiper-button-prev'}});
 
         // ===== زر الوضع الليلي والنهاري =====
@@ -539,7 +551,6 @@ class WebServer:
         const savedTheme = localStorage.getItem('theme') || 'dark';
         htmlEl.setAttribute('data-theme', savedTheme);
         themeToggle.innerHTML = savedTheme === 'dark' ? '<i class="fas fa-moon"></i>' : '<i class="fas fa-sun"></i>';
-
         themeToggle.addEventListener('click', () => { 
             let currentTheme = htmlEl.getAttribute('data-theme');
             let newTheme = currentTheme === 'dark' ? 'light' : 'dark';
@@ -551,19 +562,34 @@ class WebServer:
         const video = document.getElementById('autoplayVideo');
         new IntersectionObserver((e)=>{e.forEach(en=>{if(en.isIntersecting)video.play().catch(()=>{});else video.pause();})},{threshold:0.5}).observe(video);
 
-        // ===== تأثيرات البطاقات =====
+        // ===== تأثيرات البطاقات (3D Tilt & Mouse Glow) =====
         document.querySelectorAll('.glow-card, .contact-card, .product-card').forEach(card => {
             card.addEventListener('mousemove', e => { let r = card.getBoundingClientRect(); card.style.setProperty('--mouse-x', (e.clientX-r.left)+'px'); card.style.setProperty('--mouse-y', (e.clientY-r.top)+'px'); let rx = (e.clientY - r.top - r.height/2) / 20; let ry = (r.width/2 - (e.clientX - r.left)) / 20; card.style.transform = `perspective(1000px) rotateX(${-rx}deg) rotateY(${-ry}deg) scale(1.03)`; });
             card.addEventListener('mouseleave', () => card.style.transform = 'none');
         });
 
-        // ===== زر الروبوت العائم (تحديث ليعمل كزر للعودة للأعلى بحركة سلسة) =====
+        // ===== زر الروبوت العائم (تم الإصلاح ليصبح FAB Menu) =====
         const fabRobot = document.getElementById('fabRobot');
+        const fabMenu = document.getElementById('fabMenu');
         fabRobot.addEventListener('click', () => {
             fabRobot.classList.toggle('active');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            setTimeout(() => fabRobot.classList.remove('active'), 1000);
+            fabMenu.classList.toggle('active');
         });
+
+        // ===== ميزة البحث الحديثة (Live Search) =====
+        function searchProducts() {
+            let input = document.getElementById('searchInput').value.toLowerCase();
+            let cards = document.querySelectorAll('.product-card');
+            cards.forEach(card => {
+                let name = card.querySelector('h4').innerText.toLowerCase();
+                if(name.includes(input)) {
+                    card.style.display = 'block';
+                    gsap.fromTo(card, {opacity:0, scale:0.8}, {opacity:1, scale:1, duration:0.3});
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
     </script>
 </body>
 </html>
@@ -572,23 +598,26 @@ class WebServer:
     def generate_html(self):
         data = self.db.load()
         if data.get("maintenance_mode", False):
-            return self.maintenance_template.replace("%MAINTENANCE_MSG%", str(data.get("maintenance_message", "نحن نقوم بأعمال صيانة وتطوير. سنعود قريباً!")))
+            return self.maintenance_template.replace("%MAINTENANCE_MSG%", html.escape(str(data.get("maintenance_message", "نحن نقوم بأعمال صيانة وتطوير. سنعود قريباً!"))))
 
-        slider_text = data.get("slider_text", "وجهتك الأولى للقرطاسية والمستلزمات الفنية في سوريا")
+        slider_text = html.escape(str(data.get("slider_text", "وجهتك الأولى للقرطاسية والمستلزمات الفنية في سوريا")))
         slider_html = "".join([f'<div class="swiper-slide"><img src="{img}"><div class="ad-slider-overlay"><h2>مكتبة الشاغور الحديثة</h2><div class="typing-text">{slider_text}</div></div></div>' for img in data.get("slider_images", [])])
         
-        cats_html = "".join([f'<div class="swiper-slide"><div class="glow-card"><div class="category-img"><img src="{c["img"]}"></div><div class="category-info"><h3>{c["name"]}</h3></div></div></div>' for c in data.get("categories", [])])
+        cats_html = "".join([f'<div class="swiper-slide"><div class="glow-card"><div class="category-img"><img src="{c["img"]}"></div><div class="category-info"><h3>{html.escape(c["name"])}</h3></div></div></div>' for c in data.get("categories", [])])
         
         prods_html_parts = []
         for cat in data.get("categories", []):
             if not cat.get("products"): continue
-            prods_html_parts.append(f'<div class="category-block reveal"><div class="category-title-row"><h3>{cat["name"]}</h3></div><div class="products-grid">')
+            prods_html_parts.append(f'<div class="category-block reveal"><div class="category-title-row"><h3>{html.escape(cat["name"])}</h3></div><div class="products-grid">')
             for prod in cat.get("products", []):
-                prods_html_parts.append(f'<div class="product-card"><div class="product-img"><img src="{prod["img"]}"></div><div class="product-info"><h4>{prod["name"]}</h4><p class="product-price">{prod["price"]} ل.س</p></div></div>')
+                # إصلاح حقن HTML وتأمين النصوص
+                p_name = html.escape(str(prod.get("name", "")))
+                p_price = html.escape(str(prod.get("price", "")))
+                prods_html_parts.append(f'<div class="product-card"><div class="product-img"><img src="{prod.get("img")}"></div><div class="product-info"><h4>{p_name}</h4><p class="product-price">{p_price} ل.س</p></div></div>')
             prods_html_parts.append('</div></div>')
         prods_html = "".join(prods_html_parts)
             
-        offers_html = "".join([f'<div class="glow-card"><div class="offer-img"><span class="offer-badge">عرض خاص</span><img src="{o["img"]}"></div><div class="offer-info"><h3>{o["title"]}</h3><p>{o["desc"]}</p><p class="offer-price">{o["price"]}</p></div></div>' for o in data.get("offers", [])])
+        offers_html = "".join([f'<div class="glow-card"><div class="offer-img"><span class="offer-badge">عرض خاص</span><img src="{o["img"]}"></div><div class="offer-info"><h3>{html.escape(o["title"])}</h3><p>{html.escape(o["desc"])}</p><p class="offer-price">{html.escape(o["price"])}</p></div></div>' for o in data.get("offers", [])])
         
         c = data.get("contacts", {})
         
@@ -600,15 +629,14 @@ class WebServer:
         final_html = self.html_template
         final_html = final_html.replace("%LOGO_URL%", str(data.get("logo_url", DEFAULT_LOGO)))
         final_html = final_html.replace("%ICON_URL%", str(data.get("icon_url", DEFAULT_LOGO)))
-        final_html = final_html.replace("%ANNOUNCEMENT_ITEM_1%", ann_parts[0])
-        final_html = final_html.replace("%ANNOUNCEMENT_ITEM_2%", ann_parts[1])
-        final_html = final_html.replace("%ANNOUNCEMENT_ITEM_3%", ann_parts[2])
+        final_html = final_html.replace("%ANNOUNCEMENT_ITEM_1%", html.escape(ann_parts[0]))
+        final_html = final_html.replace("%ANNOUNCEMENT_ITEM_2%", html.escape(ann_parts[1]))
+        final_html = final_html.replace("%ANNOUNCEMENT_ITEM_3%", html.escape(ann_parts[2]))
         final_html = final_html.replace("%SLIDER_HTML%", slider_html)
         final_html = final_html.replace("%CATEGORIES_HTML%", cats_html)
         final_html = final_html.replace("%PRODUCTS_HTML%", prods_html)
         final_html = final_html.replace("%OFFERS_HTML%", offers_html)
         final_html = final_html.replace("%VIDEO_URL%", str(data.get("video_url", "")))
-        # تم إبقاء المتغيرات في حال الحاجة لها مستقبلاً
         final_html = final_html.replace("%WHATSAPP%", str(c.get("whatsapp", "")))
         final_html = final_html.replace("%INSTAGRAM%", str(c.get("instagram", "")))
         final_html = final_html.replace("%GMAIL%", str(c.get("gmail", "")))
@@ -616,13 +644,16 @@ class WebServer:
 
     async def handle_index(self, request):
         try:
-            return web.Response(text=self.generate_html(), content_type='text/html')
+            # إصلاح الخطأ الحظري: نقل التوليد إلى خيط منفصل
+            html_content = await asyncio.to_thread(self.generate_html)
+            return web.Response(text=html_content, content_type='text/html')
         except Exception as e:
-            logging.error(f"خطأ في توليد الصفحة: {e} - main.py:566")
+            logging.error(f"خطأ في توليد الصفحة: {traceback.format_exc()}")
             return web.Response(text="Internal Server Error", status=500)
 
     async def handle_uploads(self, request):
         file_path = request.match_info.get('file_path', '')
+        # حماية مسار الملف
         if '..' in file_path or file_path.startswith('/'):
             return web.Response(status=400)
         full_path = os.path.abspath(os.path.join(UPLOADS_DIR, file_path))
@@ -683,7 +714,8 @@ class TelegramBot:
     def _register_handlers(self):
         @self.router.message(CommandStart())
         async def start_cmd(message: Message, state: FSMContext):
-            if message.from_user.id != ADMIN_ID: return await message.answer("عذراً، هذه اللوحة مخصصة للمسؤولين فقط.")
+            if message.from_user.id != ADMIN_ID: 
+                return await message.answer("عذراً، هذه اللوحة مخصصة للمسؤولين فقط.")
             await state.clear()
             await message.answer("مرحباً بك في لوحة التحكم الشاملة لمكتبة الشاغور الحديثة.\nاختر ما تريد تعديله:", reply_markup=self.main_kb())
 
@@ -727,8 +759,8 @@ class TelegramBot:
         @self.router.callback_query(F.data == "manage_branding")
         async def manage_branding_cb(cb: CallbackQuery):
             kb = InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text="رفع الشعار (Logo)", callback_data="upload_logo")],
-                [InlineKeyboardButton(text="رفع الأيقونة (Favicon)", callback_data="upload_icon")],
+                [InlineKeyboardButton(text="رفع الشعار", callback_data="upload_logo")],
+                [InlineKeyboardButton(text="رفع الأيقونة", callback_data="upload_icon")],
                 [InlineKeyboardButton(text="🔙 رجوع", callback_data="back")]
             ])
             await cb.message.edit_text("إدارة هوية الموقع:", reply_markup=kb)
@@ -743,7 +775,7 @@ class TelegramBot:
                 ext = file.file_path.split('.')[-1]
                 file_name = f"{key}_{uuid.uuid4().hex}.{ext}"
                 file_path = os.path.join(UPLOADS_DIR, file_name)
-                if not os.path.exists(UPLOADS_DIR): os.makedirs(UPLOADS_DIR)
+                os.makedirs(UPLOADS_DIR, exist_ok=True)
                 await self.bot.download_file(file.file_path, file_path)
                 data = self.db.load()
                 data[key] = f"/uploads/{file_name}"
@@ -842,7 +874,7 @@ class TelegramBot:
                 file = await self.bot.get_file(file_id)
                 file_name = f"slider_{uuid.uuid4().hex}.jpg"
                 file_path = os.path.join(UPLOADS_DIR, file_name)
-                if not os.path.exists(UPLOADS_DIR): os.makedirs(UPLOADS_DIR)
+                os.makedirs(UPLOADS_DIR, exist_ok=True)
                 await self.bot.download_file(file.file_path, file_path)
                 data = self.db.load()
                 if "slider_images" not in data: data["slider_images"] = []
@@ -892,7 +924,7 @@ class TelegramBot:
                 file = await self.bot.get_file(file_id)
                 file_name = f"cat_{uuid.uuid4().hex}.jpg"
                 file_path = os.path.join(UPLOADS_DIR, file_name)
-                if not os.path.exists(UPLOADS_DIR): os.makedirs(UPLOADS_DIR)
+                os.makedirs(UPLOADS_DIR, exist_ok=True)
                 await self.bot.download_file(file.file_path, file_path)
                 data = self.db.load()
                 cat_data = await state.get_data()
@@ -962,7 +994,7 @@ class TelegramBot:
                 file = await self.bot.get_file(file_id)
                 file_name = f"prod_{uuid.uuid4().hex}.jpg"
                 file_path = os.path.join(UPLOADS_DIR, file_name)
-                if not os.path.exists(UPLOADS_DIR): os.makedirs(UPLOADS_DIR)
+                os.makedirs(UPLOADS_DIR, exist_ok=True)
                 await self.bot.download_file(file.file_path, file_path)
                 data = self.db.load()
                 prod_data = await state.get_data()
@@ -1027,7 +1059,7 @@ class TelegramBot:
                 file = await self.bot.get_file(file_id)
                 file_name = f"offer_{uuid.uuid4().hex}.jpg"
                 file_path = os.path.join(UPLOADS_DIR, file_name)
-                if not os.path.exists(UPLOADS_DIR): os.makedirs(UPLOADS_DIR)
+                os.makedirs(UPLOADS_DIR, exist_ok=True)
                 await self.bot.download_file(file.file_path, file_path)
                 data = self.db.load()
                 off_data = await state.get_data()
@@ -1084,25 +1116,21 @@ class TelegramBot:
         while True:
             try:
                 await self.bot.delete_webhook(drop_pending_updates=True)
-                logging.info("🤖 البوت يعمل بشكل سليم ويراقب الرسائل... - main.py:1036")
+                logging.info("🤖 البوت يعمل بشكل سليم ويراقب الرسائل...")
                 await self.dp.start_polling(self.bot, handle_signals=False)
-                logging.info("Polling stopped normally. Restarting in 15 seconds... - main.py:1039")
+                logging.info("Polling stopped normally. Restarting in 15 seconds...")
                 await asyncio.sleep(15)
             except Exception as e:
-                logging.error(f"❌ خطأ في تشغيل البوت (ربما شبكة الاستضافة تمنع تيليجرام): {e} - main.py:1042")
-                logging.info("سيتم إعادة محاولة تشغيل البوت بعد 60 ثانية لمنع استهلاك المعالج (Code 137)... - main.py:1043")
-                await asyncio.sleep(60) 
+                logging.error(f"❌ خطأ في تشغيل البوت: {e}")
+                logging.info("سيتم إعادة محاولة تشغيل البوت بعد 60 ثانية لمنع استهلاك المعالج...")
+                await asyncio.sleep(60)
 
 # ==========================================
-# 4. المنفذ الرئيسي (Main Executor)
+# 4. المنفذ الرئيسي (Main Executor) - تم إصلاح الربط على 0.0.0.0
 # ==========================================
 async def main():
-    logging.info("🚀 بدء تشغيل التطبيق... - main.py:1050")
-    if not os.path.exists(UPLOADS_DIR):
-        try:
-            os.makedirs(UPLOADS_DIR)
-        except Exception as e:
-            logging.warning(f"تعذر إنشاء مجلد الرفعات عند الإقلاع: {e} - main.py:1055")
+    logging.info("🚀 بدء تشغيل التطبيق...")
+    os.makedirs(UPLOADS_DIR, exist_ok=True)
 
     web_app_instance = WebServer(db)
     bot_instance = TelegramBot(db)
@@ -1115,24 +1143,25 @@ async def main():
     runner = web.AppRunner(app)
     await runner.setup()
     
-    # تم تعديل هذا السطر ليتوافق مع Render وأي منصة سحابية بشكل ديناميكي
+    # إصلاح خطأ Render: الربط على 0.0.0.0 إلزامي واستخدام PORT من البيئة
     port = int(os.environ.get("PORT", 10000))
     site = web.TCPSite(runner, '0.0.0.0', port)
     
     try:
         await site.start()
-        logging.info(f"✅ خادم الويب يعمل بنجاح على المنفذ {port} - main.py:1075")
+        logging.info(f"✅ خادم الويب يستمع فعلياً على 0.0.0.0:{port}")
     except Exception as e:
-        logging.error(f"❌ فشل تشغيل خادم الويب: {e} - main.py:1077")
+        logging.critical(f"❌ فشل تشغيل خادم الويب: {e}")
         return
 
+    # تشغيل البوت في نفس الـ event loop (بدون خيوط منفصلة لتفادي مشاكل Python 3.14)
     asyncio.create_task(bot_instance.run_background())
     
     try:
         while True:
             await asyncio.sleep(3600)
     except Exception as e:
-        logging.error(f"❌ خطأ قاتل في حلقة الأحداث: {e} - main.py:1088")
+        logging.critical(f"❌ خطأ قاتل في حلقة الأحداث: {e}")
     finally:
         await runner.cleanup()
         await bot_instance.bot.session.close()
@@ -1140,8 +1169,7 @@ async def main():
 if __name__ == "__main__":
     try:
         asyncio.run(main())
-    except KeyboardInterrupt:
-        logging.info("\nتم إيقاف البرنامج يدوياً. - main.py:1097")
-    except Exception as e:
-        logging.error(f"❌ خطأ قاتل خارجي: {e} - main.py:1099")
-        traceback.print_exc()
+    except (KeyboardInterrupt, SystemExit):
+        logging.info("⛔ تم إيقاف التطبيق")
+    except Exception:
+        logging.critical(traceback.format_exc())
