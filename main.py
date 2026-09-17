@@ -24,7 +24,7 @@ logging.basicConfig(
 
 # ================= الإعدادات العامة =================
 # أمان: القراءة من متغيرات البيئة أولاً
-BOT_TOKEN = os.environ.get("BOT_TOKEN", "8395651089:AAEfbnpVCy0AJL2pI1X57Zlv5cP7CySOo5s") # ضع التوكن في Environment Variables في Render
+BOT_TOKEN = os.environ.get("BOT_TOKEN", "8395651089:AAEfbnpVCy0AJL2pI1X57Zlv5cP7CySOo5s")
 ADMIN_ID = int(os.environ.get("ADMIN_ID", "8410208108"))
 DB_FILE = os.environ.get("DB_FILE", "data.json")
 UPLOADS_DIR = os.environ.get("UPLOADS_DIR", "uploads")
@@ -36,7 +36,7 @@ _data_lock = threading.RLock()
 try:
     os.makedirs(UPLOADS_DIR, exist_ok=True)
 except Exception as e:
-    logging.warning(f"تعذر إنشاء مجلد الرفعات: {e}")
+    logging.warning(f"تعذر إنشاء مجلد الرفعات: {e} - main.py:39")
 
 DEFAULT_LOGO = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyMDAiIGZpbGw9IiMwRjBGMEYiLz48Y2lyY2xlIGN4PSIxMDAiIGN5PSIxMDAiIHI9IjkwIiBzdHJva2U9IiNDOUE5NjEiIHN0cm9rZS13aWR0aD0iMyIvPjxwYXRoIGQ9Ik02MCA2MEwxMDAgODBMMTQwIDYwVjE0MEwxMDAgMTIwTDYwIDE0MFoiIGZpbGw9IiNDOUE5NjEiLz48cmVjdCB4PSI5NiIgeT0iNjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgwIiBmaWxsPSIjMEYwRjBGIi8+PC9zdmc+"
 
@@ -58,10 +58,10 @@ class Database:
                         self._memory_db = json.load(f)
                         return self._memory_db
                 except Exception:
-                    logging.warning("ملف البيانات تالف. سيتم إنشاء بيانات افتراضية.")
+                    logging.warning("ملف البيانات تالف. سيتم إنشاء بيانات افتراضية. - main.py:61")
             
             self._memory_db = self._default_data()
-            self._write_to_disk(self._memory_db) # إصلاح: كتابة مباشرة بدل استدعاء save لتفادي الجمود
+            self._write_to_disk(self._memory_db)
             return self._memory_db
 
     def save(self, data):
@@ -74,7 +74,7 @@ class Database:
             with open(DB_FILE, 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=4)
         except Exception:
-            logging.warning("تعذر الكتابة على القرص. سيتم استخدام الذاكرة المؤقتة.")
+            logging.warning("تعذر الكتابة على القرص. سيتم استخدام الذاكرة المؤقتة. - main.py:77")
 
     def _default_data(self):
         return {
@@ -119,7 +119,7 @@ class WebServer:
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <title>صيانة | مكتبة الشاغور الحديثة</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@200;400;600;800&family=Amiri:wght@400;700&display=swap" rel="stylesheet">
     <style>body{margin:0;background:#0F0F0F;color:#C9A961;font-family:'Cairo',sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;text-align:center;overflow:hidden}.container{z-index:2;padding:20px}.gear{width:100px;height:100px;margin:0 auto 30px;border:3px solid #C9A961;border-radius:50%;border-top-color:transparent;animation:spin 2s linear infinite;display:flex;justify-content:center;align-items:center;box-shadow:0 0 30px rgba(201,169,97,0.3)}.gear svg{width:50px;height:50px;fill:#C9A961;animation:spin-rev 4s linear infinite}@keyframes spin{100%{transform:rotate(360deg)}}@keyframes spin-rev{100%{transform:rotate(-360deg)}}h1{font-family:'Amiri',serif;font-size:48px;margin-bottom:20px;text-shadow:0 0 20px rgba(201,169,97,0.5)}p{font-size:18px;max-width:600px;margin:0 auto;line-height:1.6;color:#8B8B8B}.bg-particles{position:absolute;top:0;left:0;width:100%;height:100%;z-index:1;pointer-events:none}</style>
@@ -133,7 +133,7 @@ class WebServer:
 """
 
     def _get_main_template(self):
-        # تمت إزالة تأثير الماوس السحبي بالكامل (cursor-dot & outline) وإضافة واجهة حديثة جداً
+        # قالب محدث بالكامل لمنع التحرك الأفقي ودعم الهواتف بأحدث التقنيات
         return """
 <!DOCTYPE html>
 <html lang="ar" dir="rtl" data-theme="dark">
@@ -141,7 +141,6 @@ class WebServer:
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <meta name="description" content="مكتبة الشاغور الحديثة - وجهتك الأولى للقرطاسية والمستلزمات الفنية والمكتبية في سوريا">
-    <!-- تحسين محركات البحث SEO -->
     <meta property="og:title" content="مكتبة الشاغور الحديثة">
     <meta property="og:description" content="وجهتك الأولى للقرطاسية والمستلزمات الفنية في سوريا">
     <meta property="og:image" content="%LOGO_URL%">
@@ -162,25 +161,28 @@ class WebServer:
             --text-light: #F5F1E8; --text-muted: #8B8B8B; --border-color: rgba(201, 169, 97, 0.2);
             --shadow-gold: 0 10px 40px rgba(201, 169, 97, 0.15); --glass-bg: rgba(26, 26, 26, 0.7);
             --transition-smooth: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            --max-width: 1400px;
         }
         [data-theme="light"] { 
             --dark-bg: #F8F9FA; --dark-bg-2: #FFFFFF; --text-light: #1A1A1A; --text-muted: #555555; 
             --border-color: rgba(0,0,0,0.1); --glass-bg: rgba(255,255,255,0.85); --shadow-gold: 0 10px 40px rgba(0,0,0,0.1);
         }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        html { scroll-behavior: smooth; }
-        body { background: var(--dark-bg); color: var(--text-light); font-family: 'Cairo', sans-serif; transition: background 0.5s, color 0.5s; overflow-x: hidden; }
+        
+        /* إصلاح مشكلة التحرك الأفقي نهائياً */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; max-width: 100%; }
+        html { scroll-behavior: smooth; overflow-x: hidden; max-width: 100%; }
+        body { background: var(--dark-bg); color: var(--text-light); font-family: 'Cairo', sans-serif; transition: background 0.5s, color 0.5s; overflow-x: hidden; max-width: 100vw; position: relative; }
         
         #particles-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
         .scroll-progress { position: fixed; top: 0; left: 0; width: 0%; height: 3px; background: linear-gradient(90deg, var(--primary-gold-dark), var(--primary-gold-light)); z-index: 1002; transition: width 0.1s; }
         
         /* ===== واجهة التحميل المتطورة (Cyberpunk / Developer Style) ===== */
-        .dev-loader { position: fixed; inset: 0; background: #050505; z-index: 10000; display: flex; justify-content: center; align-items: center; flex-direction: column; transition: opacity 0.8s ease, visibility 0.8s ease; overflow: hidden; }
+        .dev-loader { position: fixed; inset: 0; background: #050505; z-index: 10000; display: flex; justify-content: center; align-items: center; flex-direction: column; transition: opacity 0.8s ease, visibility 0.8s ease; overflow: hidden; padding: 20px; }
         .dev-loader.hidden { opacity: 0; visibility: hidden; }
         .dev-loader::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(transparent 90%, rgba(201, 169, 97, 0.05) 80%); background-size: 100% 4px; animation: scanlines 8s linear infinite; pointer-events: none; }
         @keyframes scanlines { 0% { background-position: 0 0; } 100% { background-position: 0 100%; } }
         
-        .dev-loader-box { width: 90%; max-width: 500px; background: rgba(10, 10, 10, 0.9); border: 1px solid var(--primary-gold-dark); border-radius: 12px; box-shadow: 0 0 40px rgba(201, 169, 97, 0.15); overflow: hidden; backdrop-filter: blur(10px); position: relative; }
+        .dev-loader-box { width: 100%; max-width: 500px; background: rgba(10, 10, 10, 0.9); border: 1px solid var(--primary-gold-dark); border-radius: 12px; box-shadow: 0 0 40px rgba(201, 169, 97, 0.15); overflow: hidden; backdrop-filter: blur(10px); position: relative; }
         .dev-loader-header { background: rgba(201, 169, 97, 0.1); padding: 8px 15px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border-color); }
         .dev-dots { display: flex; gap: 6px; }
         .dev-dots span { width: 10px; height: 10px; border-radius: 50%; background: var(--primary-gold-dark); opacity: 0.7; }
@@ -209,7 +211,7 @@ class WebServer:
         
         .marquee-wrapper { display: flex; width: max-content; animation: modern-marquee 30s linear infinite; }
         .marquee-content { display: flex; align-items: center; gap: 40px; padding: 0 20px; }
-        .marquee-item { color: var(--primary-gold-light); font-size: clamp(11px, 2vw, 13px); font-weight: 600; font-family: 'Cairo', sans-serif; text-shadow: 0 0 8px rgba(201, 169, 97, 0.6); display: flex; align-items: center; gap: 40px; white-space: nowrap; }
+        .marquee-item { color: var(--primary-gold-light); font-size: clamp(11px, 3vw, 13px); font-weight: 600; font-family: 'Cairo', sans-serif; text-shadow: 0 0 8px rgba(201, 169, 97, 0.6); display: flex; align-items: center; gap: 40px; white-space: nowrap; }
         .marquee-item .icon { color: var(--primary-gold); font-size: 8px; animation: pulse-icon 1.5s infinite; }
         @keyframes modern-marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
         @keyframes pulse-icon { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
@@ -217,18 +219,17 @@ class WebServer:
         /* ===== شريط التنقل ===== */
         .navbar { position: fixed; top: 35px; left: 0; width: 100%; z-index: 1000; background: var(--glass-bg); backdrop-filter: blur(15px); border-bottom: 1px solid var(--border-color); transition: top 0.4s; }
         .navbar.hide-nav { top: -65px; }
-        .nav-container { max-width: 1400px; margin: 0 auto; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; }
+        .nav-container { max-width: var(--max-width); margin: 0 auto; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; }
         .nav-logo { display: flex; align-items: center; gap: 12px; cursor: pointer; }
         .nav-logo img { width: 40px; height: 40px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); transition: transform 0.3s; }
         .nav-logo:hover img { transform: scale(1.1) rotate(5deg); }
-        .logo-text h1 { font-family: 'Amiri', serif; font-size: clamp(16px, 3vw, 22px); color: var(--primary-gold); line-height: 1.2; }
+        .logo-text h1 { font-family: 'Amiri', serif; font-size: clamp(16px, 4vw, 22px); color: var(--primary-gold); line-height: 1.2; }
         .logo-text p { font-size: 9px; color: var(--text-muted); letter-spacing: 1px; }
         .nav-actions { display: flex; gap: 10px; align-items: center; }
         
-        /* شريط البحث الحديث (ميزة مضافة) */
         .search-box { position: relative; display: flex; align-items: center; }
         .search-box input { background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 20px; padding: 5px 15px; color: var(--text-light); font-family: 'Cairo'; font-size: 12px; outline: none; width: 120px; transition: width 0.3s; }
-        .search-box input:focus { width: 200px; border-color: var(--primary-gold); }
+        .search-box input:focus { width: 180px; border-color: var(--primary-gold); }
         .search-box i { position: absolute; right: 10px; color: var(--text-muted); font-size: 12px; pointer-events: none; }
         
         .theme-toggle, .mobile-btn { background: none; border: 1px solid var(--border-color); color: var(--text-light); width: 35px; height: 35px; border-radius: 50%; font-size: 14px; transition: 0.3s; display: flex; justify-content: center; align-items: center; z-index: 1001; cursor: pointer; }
@@ -241,7 +242,7 @@ class WebServer:
         
         .fullscreen-menu { position: fixed; top: 0; right: -100%; width: 100%; height: 100vh; background: rgba(15,15,15,0.98); backdrop-filter: blur(20px); z-index: 999; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 30px; transition: right 0.5s cubic-bezier(0.77, 0, 0.175, 1); }
         .fullscreen-menu.active { right: 0; }
-        .fullscreen-menu a { color: var(--text-light); text-decoration: none; font-family: 'Amiri', serif; font-size: clamp(28px, 6vw, 40px); opacity: 0; transform: translateX(50px); transition: all 0.5s; cursor: pointer; }
+        .fullscreen-menu a { color: var(--text-light); text-decoration: none; font-family: 'Amiri', serif; font-size: clamp(28px, 8vw, 40px); opacity: 0; transform: translateX(50px); transition: all 0.5s; cursor: pointer; }
         .fullscreen-menu.active a { opacity: 1; transform: translateX(0); }
         .fullscreen-menu.active a:nth-child(1) { transition-delay: 0.2s; }
         .fullscreen-menu.active a:nth-child(2) { transition-delay: 0.3s; }
@@ -249,7 +250,7 @@ class WebServer:
         .fullscreen-menu.active a:nth-child(4) { transition-delay: 0.5s; }
         .fullscreen-menu a:hover { color: var(--primary-gold); text-shadow: 0 0 20px var(--primary-gold); }
         
-        .main-content { margin-top: 120px; padding: 0 20px 50px; max-width: 1400px; margin-left: auto; margin-right: auto; }
+        .main-content { margin-top: 120px; padding: 0 20px 50px; max-width: var(--max-width); margin-left: auto; margin-right: auto; }
         .reveal { opacity: 0; transform: translateY(50px); transition: all 1s cubic-bezier(0.5, 0, 0, 1); }
         .reveal.active { opacity: 1; transform: translateY(0); }
         
@@ -260,13 +261,13 @@ class WebServer:
         .main-slider { height: clamp(300px, 50vh, 500px); border-radius: 20px; overflow: hidden; margin-bottom: 60px; box-shadow: var(--shadow-gold); border: 1px solid var(--border-color); }
         .main-slider .swiper-slide img { width: 100%; height: 100%; object-fit: cover; filter: brightness(0.6); }
         .ad-slider-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #fff; text-align: center; padding: 20px; background: linear-gradient(to top, rgba(0,0,0,0.9), transparent); }
-        .ad-slider-overlay h2 { font-family: 'Amiri', serif; font-size: clamp(24px, 5vw, 42px); color: var(--primary-gold); margin-bottom: 15px; text-shadow: 0 0 20px rgba(201,169,97,0.5); }
+        .ad-slider-overlay h2 { font-family: 'Amiri', serif; font-size: clamp(24px, 6vw, 42px); color: var(--primary-gold); margin-bottom: 15px; text-shadow: 0 0 20px rgba(201,169,97,0.5); }
         
         .typing-text { 
             border-right: 2px solid var(--primary-gold); 
             white-space: nowrap; 
             overflow: hidden; 
-            font-size: clamp(16px, 3vw, 22px); 
+            font-size: clamp(14px, 4vw, 22px); 
             max-width: 90%; 
             animation: typing 4s steps(40, end), blink-caret .75s step-end infinite;
             background: linear-gradient(90deg, #E5C77C, #C9A961);
@@ -281,32 +282,32 @@ class WebServer:
         
         .section { margin-bottom: 80px; }
         .section-header { text-align: center; margin-bottom: 40px; }
-        .section-header h2 { font-family: 'Amiri', serif; font-size: clamp(28px, 5vw, 42px); color: var(--text-light); margin-bottom: 15px; position: relative; display: inline-block; }
+        .section-header h2 { font-family: 'Amiri', serif; font-size: clamp(28px, 6vw, 42px); color: var(--text-light); margin-bottom: 15px; position: relative; display: inline-block; }
         .section-header h2 span { color: var(--primary-gold); }
         .section-header h2::after { content: ''; position: absolute; bottom: -10px; left: 50%; transform: translateX(-50%); width: 60px; height: 3px; background: var(--primary-gold); box-shadow: 0 0 10px var(--primary-gold); }
         
         .cat-swiper { overflow: visible; padding: 20px 10px 40px; }
-        .glow-card { background: var(--glass-bg); border: 1px solid var(--border-color); border-radius: 16px; overflow: hidden; transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); position: relative; cursor: pointer; height: 100%; }
+        .glow-card { background: var(--glass-bg); border: 1px solid var(--border-color); border-radius: 16px; overflow: hidden; transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); position: relative; cursor: pointer; height: 100%; will-change: transform; }
         .glow-card::before { content: ''; position: absolute; inset: 0; border-radius: 16px; padding: 1px; background: radial-gradient(300px circle at var(--mouse-x) var(--mouse-y), rgba(201, 169, 97, 0.8), transparent 40%); -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; opacity: 0; transition: opacity 0.3s; z-index: 2; pointer-events: none; }
         .glow-card:hover::before { opacity: 1; }
         .category-img { height: 200px; overflow: hidden; }
         .category-img img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.8s; }
         .glow-card:hover .category-img img { transform: scale(1.1); }
         .category-info { padding: 20px; text-align: center; z-index: 3; position: relative; }
-        .category-info h3 { color: var(--text-light); font-size: clamp(16px, 3vw, 18px); font-weight: 700; }
+        .category-info h3 { color: var(--text-light); font-size: clamp(16px, 4vw, 18px); font-weight: 700; }
         
         .category-block { margin-bottom: 60px; }
         .category-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
-        .category-title-row h3 { font-family: 'Amiri', serif; font-size: clamp(22px, 4vw, 28px); color: var(--primary-gold); }
+        .category-title-row h3 { font-family: 'Amiri', serif; font-size: clamp(22px, 5vw, 28px); color: var(--primary-gold); }
         .products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; }
-        .product-card { background: var(--glass-bg); border: 1px solid var(--border-color); border-radius: 16px; overflow: hidden; transition: all 0.3s; position: relative; }
+        .product-card { background: var(--glass-bg); border: 1px solid var(--border-color); border-radius: 16px; overflow: hidden; transition: all 0.3s; position: relative; will-change: transform; }
         .product-card:hover { border-color: var(--primary-gold); transform: translateY(-5px); }
         .product-img { height: 150px; overflow: hidden; }
         .product-img img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s; }
         .product-card:hover .product-img img { transform: scale(1.1); }
         .product-info { padding: 15px; text-align: center; }
-        .product-info h4 { color: var(--text-light); margin-bottom: 8px; font-size: clamp(14px, 2.5vw, 16px); }
-        .product-price { color: var(--primary-gold); font-weight: 700; font-size: clamp(16px, 3vw, 18px); }
+        .product-info h4 { color: var(--text-light); margin-bottom: 8px; font-size: clamp(14px, 3vw, 16px); }
+        .product-price { color: var(--primary-gold); font-weight: 700; font-size: clamp(16px, 4vw, 18px); }
         
         .offers-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 30px; }
         .offer-img { height: 250px; overflow: hidden; position: relative; }
@@ -314,16 +315,15 @@ class WebServer:
         .glow-card:hover .offer-img img { transform: scale(1.1); }
         .offer-badge { position: absolute; top: 15px; right: 15px; background: var(--primary-gold); color: #000; padding: 5px 12px; border-radius: 15px; font-size: 11px; z-index: 4; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         .offer-info { padding: 25px; z-index: 3; position: relative; }
-        .offer-info h3 { color: var(--primary-gold); font-size: clamp(18px, 3vw, 22px); margin-bottom: 15px; }
+        .offer-info h3 { color: var(--primary-gold); font-size: clamp(18px, 4vw, 22px); margin-bottom: 15px; }
         .offer-info p { color: var(--text-muted); font-size: 14px; line-height: 1.6; margin-bottom: 15px; }
-        .offer-price { font-family: 'Amiri', serif; font-size: clamp(22px, 4vw, 26px); color: var(--primary-gold-light); font-weight: 700; }
+        .offer-price { font-family: 'Amiri', serif; font-size: clamp(22px, 5vw, 26px); color: var(--primary-gold-light); font-weight: 700; }
         
         .video-section { margin: 80px 0; border-radius: 20px; overflow: hidden; box-shadow: var(--shadow-gold); border: 1px solid var(--border-color); position: relative; height: clamp(300px, 50vh, 500px); }
         .video-section video { width: 100%; height: 100%; object-fit: cover; }
         .video-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; pointer-events: none; }
-        .video-overlay h2 { font-family: 'Amiri', serif; font-size: clamp(28px, 5vw, 40px); color: #fff; text-shadow: 0 4px 15px rgba(0,0,0,0.8); }
+        .video-overlay h2 { font-family: 'Amiri', serif; font-size: clamp(28px, 6vw, 40px); color: #fff; text-shadow: 0 4px 15px rgba(0,0,0,0.8); }
         
-        /* ===== زر الروبوت العائم (FAB) - تم إصلاحه ليصبح قائمة تواصل متطورة ===== */
         .fab-container { position: fixed; bottom: 20px; left: 20px; z-index: 9999; display: flex; flex-direction: column; align-items: center; gap: 12px; }
         .fab-robot { width: 55px; height: 55px; border-radius: 50%; background: linear-gradient(145deg, var(--primary-gold-dark), var(--primary-gold-light)); border: none; color: #0f0f0f; font-size: 24px; cursor: pointer; box-shadow: 0 5px 20px rgba(201, 169, 97, 0.6); transition: all 0.3s ease; display: flex; justify-content: center; align-items: center; animation: float 3s ease-in-out infinite; position: relative; z-index: 10; }
         .fab-robot:hover { transform: scale(1.1) rotate(10deg); box-shadow: 0 8px 25px rgba(201, 169, 97, 0.9); }
@@ -348,11 +348,19 @@ class WebServer:
         
         @media (max-width: 768px) {
             .main-content { margin-top: 100px; padding: 0 15px 30px; }
-            .products-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
-            .product-img { height: 100px; }
+            .products-grid { grid-template-columns: repeat(2, 1fr); gap: 15px; }
+            .offers-grid { grid-template-columns: 1fr; gap: 20px; }
+            .product-img { height: 120px; }
             .glow-card { border-radius: 12px; }
-            .search-box input { width: 100px; }
-            .search-box input:focus { width: 140px; }
+            .search-box { display: none; } /* إخفاء البحث على الشاشات الصغيرة لتفادي مشاكل العرض */
+            .logo-text p { display: none; }
+            .nav-container { padding: 8px 15px; }
+        }
+        
+        @media (max-width: 480px) {
+            .products-grid { grid-template-columns: 1fr; }
+            .fab-menu-item::after { display: none; }
+            .dev-log { font-size: 11px; }
         }
     </style>
 </head>
@@ -360,7 +368,7 @@ class WebServer:
     <canvas id="particles-bg"></canvas>
     <div class="scroll-progress" id="scrollProgress"></div>
     
-    <!-- واجهة التحميل المتطورة Developer Loader -->
+    <!-- واجهة التحميل المتطورة -->
     <div class="dev-loader" id="devLoader">
         <div class="dev-loader-box">
             <div class="dev-loader-header">
@@ -381,7 +389,7 @@ class WebServer:
         </div>
     </div>
 
-    <!-- شريط الإعلان المتطور -->
+    <!-- شريط الإعلان -->
     <div class="top-bar">
         <div class="marquee-wrapper" id="marqueeWrapper">
             <div class="marquee-content">
@@ -398,7 +406,7 @@ class WebServer:
             <div class="nav-logo" onclick="scrollTo({top:0,behavior:'smooth'})">
                 <img src="%LOGO_URL%" alt="Logo">
                 <div class="logo-text">
-                    <h1>مكتبة الشاغور الحديثة</h1>
+                    <h1>مكتبة الشاغور</h1>
                     <p>AL-SHAGHOUR MODERN LIBRARY</p>
                 </div>
             </div>
@@ -461,33 +469,32 @@ class WebServer:
 
         <section class="section reveal" id="contact">
             <div class="section-header"><h2>تواصل <span>معنا</span></h2></div>
-            <div class="contact-grid" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:20px; text-align:center;">
+            <div class="contact-grid" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:20px; text-align:center;">
                 <div class="contact-card" style="background:var(--glass-bg); padding:30px 15px; border-radius:16px; border:1px solid var(--border-color);">
-                    <i class="fas fa-map-marker-alt" style="font-size:24px; color:var(--primary-gold); margin-bottom:15px;"></i>
-                    <h4 style="color:var(--text-light); margin-bottom:10px;">العنوان</h4>
+                    <i class="fas fa-map-marker-alt" style="font-size:28px; color:var(--primary-gold); margin-bottom:15px;"></i>
+                    <h4 style="color:var(--text-light); margin-bottom:10px; font-size:18px;">العنوان</h4>
                     <p style="color:var(--text-muted); font-size:14px;">سوريا - دمشق - الشاغور</p>
                 </div>
                 <div class="contact-card" style="background:var(--glass-bg); padding:30px 15px; border-radius:16px; border:1px solid var(--border-color);">
-                    <i class="fas fa-clock" style="font-size:24px; color:var(--primary-gold); margin-bottom:15px;"></i>
-                    <h4 style="color:var(--text-light); margin-bottom:10px;">أوقات العمل</h4>
+                    <i class="fas fa-clock" style="font-size:28px; color:var(--primary-gold); margin-bottom:15px;"></i>
+                    <h4 style="color:var(--text-light); margin-bottom:10px; font-size:18px;">أوقات العمل</h4>
                     <p style="color:var(--text-muted); font-size:14px;">السبت - الخميس: 9 ص - 9 م</p>
                 </div>
                 <div class="contact-card" style="background:var(--glass-bg); padding:30px 15px; border-radius:16px; border:1px solid var(--border-color);">
-                    <i class="fas fa-phone-alt" style="font-size:24px; color:var(--primary-gold); margin-bottom:15px;"></i>
-                    <h4 style="color:var(--text-light); margin-bottom:10px;">الهاتف</h4>
+                    <i class="fas fa-phone-alt" style="font-size:28px; color:var(--primary-gold); margin-bottom:15px;"></i>
+                    <h4 style="color:var(--text-light); margin-bottom:10px; font-size:18px;">الهاتف</h4>
                     <p style="color:var(--text-muted); font-size:14px;">+963 11 123 4567</p>
                 </div>
             </div>
         </section>
     </div>
     
-    <!-- زر الروبوت العائم (قائمة تواصل) - تم الإصلاح -->
     <div class="fab-container">
         <div class="fab-menu-items" id="fabMenu">
             <a href="https://wa.me/%WHATSAPP%" target="_blank" class="fab-menu-item" data-tooltip="واتساب"><i class="fab fa-whatsapp"></i></a>
             <a href="https://instagram.com/%INSTAGRAM%" target="_blank" class="fab-menu-item" data-tooltip="إنستغرام"><i class="fab fa-instagram"></i></a>
             <a href="mailto:%GMAIL%" class="fab-menu-item" data-tooltip="جيميل"><i class="fas fa-envelope"></i></a>
-            <button class="fab-menu-item" onclick="scrollTo({top:0,behavior:'smooth'})" data-tooltip=" للأعلى"><i class="fas fa-arrow-up"></i></button>
+            <button class="fab-menu-item" onclick="scrollTo({top:0,behavior:'smooth'})" data-tooltip="للأعلى"><i class="fas fa-arrow-up"></i></button>
         </div>
         <button class="fab-robot" id="fabRobot" title="قائمة التواصل">
             <i class="fas fa-plus" id="fabIcon"></i>
@@ -498,7 +505,7 @@ class WebServer:
 
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     <script>
-        // ===== منطق واجهة التحميل المتطورة =====
+        // ===== منطق واجهة التحميل =====
         let devProgress = 0; 
         const devLoader = document.getElementById('devLoader'); 
         const devPercentText = document.getElementById('devPercent');
@@ -518,32 +525,32 @@ class WebServer:
         }, 200);
         setTimeout(() => { devLoader.classList.add('hidden'); }, 5000);
 
-        // ===== الجزيئات (WebGL / Canvas) =====
-        const canvas=document.getElementById('particles-bg'); const ctx=canvas.getContext('2d'); let p=[];
-        function res(){canvas.width=innerWidth;canvas.height=innerHeight;} res(); addEventListener('resize',res);
-        class P{constructor(){this.x=Math.random()*canvas.width;this.y=Math.random()*canvas.height;this.s=Math.random()*2+1;this.sx=Math.random()*0.5-0.25;this.sy=Math.random()*0.5-0.25;}u(){this.x+=this.sx;this.y+=this.sy;if(this.x<0||this.x>canvas.width)this.sx*=-1;if(this.y<0||this.y>canvas.height)this.sy*=-1;}d(){ctx.fillStyle='rgba(201,169,97,0.5)';ctx.beginPath();ctx.arc(this.x,this.y,this.s,0,Math.PI*2);ctx.fill();}}
-        function init(){p=[];for(let i=0;i<30;i++)p.push(new P());}
-        function conn(){for(let a=0;a<p.length;a++)for(let b=a;b<p.length;b++){let d=Math.hypot(p[a].x-p[b].x,p[a].y-p[b].y);if(d<120){ctx.strokeStyle='rgba(201,169,97,'+(0.2-d/600)+')';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(p[a].x,p[a].y);ctx.lineTo(p[b].x,p[b].y);ctx.stroke();}}}
-        function anim(){ctx.clearRect(0,0,canvas.width,canvas.height);p.forEach(e=>{e.u();e.d();});conn();requestAnimationFrame(anim);} init(); anim();
+        // ===== الجزيئات الخلفية (محسنة للأداء) =====
+        const canvas = document.getElementById('particles-bg'); const ctx = canvas.getContext('2d'); let p=[];
+        function res(){ canvas.width = window.innerWidth; canvas.height = window.innerHeight; } res(); window.addEventListener('resize', res);
+        class P { constructor(){ this.x = Math.random() * canvas.width; this.y = Math.random() * canvas.height; this.s = Math.random() * 2 + 1; this.sx = Math.random() * 0.5 - 0.25; this.sy = Math.random() * 0.5 - 0.25; } u(){ this.x += this.sx; this.y += this.sy; if(this.x < 0 || this.x > canvas.width) this.sx *= -1; if(this.y < 0 || this.y > canvas.height) this.sy *= -1; } d(){ ctx.fillStyle = 'rgba(201,169,97,0.5)'; ctx.beginPath(); ctx.arc(this.x, this.y, this.s, 0, Math.PI * 2); ctx.fill(); } }
+        function init(){ p = []; for(let i = 0; i < 30; i++) p.push(new P()); }
+        function conn(){ for(let a = 0; a < p.length; a++) for(let b = a; b < p.length; b++){ let d = Math.hypot(p[a].x - p[b].x, p[a].y - p[b].y); if(d < 120){ ctx.strokeStyle = 'rgba(201,169,97,' + (0.2 - d / 600) + ')'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(p[a].x, p[a].y); ctx.lineTo(p[b].x, p[b].y); ctx.stroke(); } } }
+        function anim(){ ctx.clearRect(0, 0, canvas.width, canvas.height); p.forEach(e => { e.u(); e.d(); }); conn(); requestAnimationFrame(anim); } init(); anim();
 
         // ===== شريط التنقل والقائمة =====
         const navbar = document.getElementById('navbar'); const menu = document.getElementById('fullscreenMenu'); const btn = document.getElementById('mobileBtn'); let lastScroll = 0;
         window.addEventListener('scroll', () => {
-            let st = window.scrollY; document.getElementById('scrollProgress').style.width = ((st / (document.body.offsetHeight - innerHeight)) * 100) + '%';
+            let st = window.scrollY; document.getElementById('scrollProgress').style.width = ((st / (document.body.offsetHeight - window.innerHeight)) * 100) + '%';
             if(st > 300) document.getElementById('backToTop').classList.add('visible'); else document.getElementById('backToTop').classList.remove('visible');
             if (st > lastScroll && st > 100) navbar.classList.add('hide-nav'); else navbar.classList.remove('hide-nav'); lastScroll = st;
         });
-        document.getElementById('backToTop').addEventListener('click', () => scrollTo({top:0,behavior:'smooth'}));
+        document.getElementById('backToTop').addEventListener('click', () => window.scrollTo({top: 0, behavior: 'smooth'}));
         btn.addEventListener('click', () => { btn.classList.toggle('active'); menu.classList.toggle('active'); });
         function closeMenu() { btn.classList.remove('active'); menu.classList.remove('active'); }
 
         // ===== GSAP Animations =====
         gsap.registerPlugin(ScrollTrigger);
-        const obs = new IntersectionObserver((e)=>{e.forEach(el=>{if(el.isIntersecting){el.target.classList.add('active'); gsap.from(el.target.children, {opacity:0, y:30, duration:0.8, stagger:0.2});}})},{threshold:0.1});
-        document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
+        const obs = new IntersectionObserver((entries) => { entries.forEach(el => { if(el.isIntersecting){ el.target.classList.add('active'); gsap.from(el.target.children, {opacity: 0, y: 30, duration: 0.8, stagger: 0.2}); } }) }, {threshold: 0.1});
+        document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
 
-        new Swiper('.main-slider', {loop:true, autoplay:{delay:4000}, effect:'fade', fadeEffect: { crossFade: true }, pagination:{el:'.swiper-pagination'}});
-        new Swiper('.cat-swiper', {slidesPerView:1, spaceBetween:20, loop:true, autoplay:{delay:3000}, breakpoints:{640:{slidesPerView:2},992:{slidesPerView:3},1200:{slidesPerView:4}}, navigation:{nextEl:'.swiper-button-next',prevEl:'.swiper-button-prev'}});
+        new Swiper('.main-slider', {loop: true, autoplay: {delay: 4000}, effect: 'fade', fadeEffect: { crossFade: true }, pagination: {el: '.swiper-pagination'}});
+        new Swiper('.cat-swiper', {slidesPerView: 1, spaceBetween: 20, loop: true, autoplay: {delay: 3000}, breakpoints: {640: {slidesPerView: 2}, 992: {slidesPerView: 3}, 1200: {slidesPerView: 4}}, navigation: {nextEl: '.swiper-button-next', prevEl: '.swiper-button-prev'}});
 
         // ===== زر الوضع الليلي والنهاري =====
         const themeToggle = document.getElementById('themeToggle');
@@ -560,15 +567,24 @@ class WebServer:
         });
 
         const video = document.getElementById('autoplayVideo');
-        new IntersectionObserver((e)=>{e.forEach(en=>{if(en.isIntersecting)video.play().catch(()=>{});else video.pause();})},{threshold:0.5}).observe(video);
+        new IntersectionObserver((entries) => { entries.forEach(en => { if(en.isIntersecting) video.play().catch(() => {}); else video.pause(); }) }, {threshold: 0.5}).observe(video);
 
         // ===== تأثيرات البطاقات (3D Tilt & Mouse Glow) =====
         document.querySelectorAll('.glow-card, .contact-card, .product-card').forEach(card => {
-            card.addEventListener('mousemove', e => { let r = card.getBoundingClientRect(); card.style.setProperty('--mouse-x', (e.clientX-r.left)+'px'); card.style.setProperty('--mouse-y', (e.clientY-r.top)+'px'); let rx = (e.clientY - r.top - r.height/2) / 20; let ry = (r.width/2 - (e.clientX - r.left)) / 20; card.style.transform = `perspective(1000px) rotateX(${-rx}deg) rotateY(${-ry}deg) scale(1.03)`; });
+            card.addEventListener('mousemove', e => { 
+                let r = card.getBoundingClientRect(); 
+                card.style.setProperty('--mouse-x', (e.clientX - r.left) + 'px'); 
+                card.style.setProperty('--mouse-y', (e.clientY - r.top) + 'px'); 
+                if(window.innerWidth > 992) { // تعطيل التأثير على الهواتف لأداء أفضل
+                    let rx = (e.clientY - r.top - r.height / 2) / 20; 
+                    let ry = (r.width / 2 - (e.clientX - r.left)) / 20; 
+                    card.style.transform = `perspective(1000px) rotateX(${-rx}deg) rotateY(${-ry}deg) scale(1.03)`; 
+                }
+            });
             card.addEventListener('mouseleave', () => card.style.transform = 'none');
         });
 
-        // ===== زر الروبوت العائم (تم الإصلاح ليصبح FAB Menu) =====
+        // ===== زر الروبوت العائم =====
         const fabRobot = document.getElementById('fabRobot');
         const fabMenu = document.getElementById('fabMenu');
         fabRobot.addEventListener('click', () => {
@@ -576,7 +592,7 @@ class WebServer:
             fabMenu.classList.toggle('active');
         });
 
-        // ===== ميزة البحث الحديثة (Live Search) =====
+        // ===== ميزة البحث الحديثة =====
         function searchProducts() {
             let input = document.getElementById('searchInput').value.toLowerCase();
             let cards = document.querySelectorAll('.product-card');
@@ -584,7 +600,7 @@ class WebServer:
                 let name = card.querySelector('h4').innerText.toLowerCase();
                 if(name.includes(input)) {
                     card.style.display = 'block';
-                    gsap.fromTo(card, {opacity:0, scale:0.8}, {opacity:1, scale:1, duration:0.3});
+                    gsap.fromTo(card, {opacity: 0, scale: 0.8}, {opacity: 1, scale: 1, duration: 0.3});
                 } else {
                     card.style.display = 'none';
                 }
@@ -610,7 +626,6 @@ class WebServer:
             if not cat.get("products"): continue
             prods_html_parts.append(f'<div class="category-block reveal"><div class="category-title-row"><h3>{html.escape(cat["name"])}</h3></div><div class="products-grid">')
             for prod in cat.get("products", []):
-                # إصلاح حقن HTML وتأمين النصوص
                 p_name = html.escape(str(prod.get("name", "")))
                 p_price = html.escape(str(prod.get("price", "")))
                 prods_html_parts.append(f'<div class="product-card"><div class="product-img"><img src="{prod.get("img")}"></div><div class="product-info"><h4>{p_name}</h4><p class="product-price">{p_price} ل.س</p></div></div>')
@@ -621,7 +636,6 @@ class WebServer:
         
         c = data.get("contacts", {})
         
-        # معالجة الإعلانات بطريقة عصرية مقسمة
         ann_text = data.get("announcements", "مرحباً بكم | توصيل سريع | عروض حصرية")
         ann_parts = [part.strip() for part in ann_text.split("|")]
         while len(ann_parts) < 3: ann_parts.append("مرحباً بكم في مكتبة الشاغور")
@@ -644,16 +658,14 @@ class WebServer:
 
     async def handle_index(self, request):
         try:
-            # إصلاح الخطأ الحظري: نقل التوليد إلى خيط منفصل
             html_content = await asyncio.to_thread(self.generate_html)
             return web.Response(text=html_content, content_type='text/html')
         except Exception as e:
-            logging.error(f"خطأ في توليد الصفحة: {traceback.format_exc()}")
+            logging.error(f"خطأ في توليد الصفحة: {traceback.format_exc()} - main.py:664")
             return web.Response(text="Internal Server Error", status=500)
 
     async def handle_uploads(self, request):
         file_path = request.match_info.get('file_path', '')
-        # حماية مسار الملف
         if '..' in file_path or file_path.startswith('/'):
             return web.Response(status=400)
         full_path = os.path.abspath(os.path.join(UPLOADS_DIR, file_path))
@@ -1116,20 +1128,20 @@ class TelegramBot:
         while True:
             try:
                 await self.bot.delete_webhook(drop_pending_updates=True)
-                logging.info("🤖 البوت يعمل بشكل سليم ويراقب الرسائل...")
+                logging.info("🤖 البوت يعمل بشكل سليم ويراقب الرسائل... - main.py:1131")
                 await self.dp.start_polling(self.bot, handle_signals=False)
-                logging.info("Polling stopped normally. Restarting in 15 seconds...")
+                logging.info("Polling stopped normally. Restarting in 15 seconds... - main.py:1133")
                 await asyncio.sleep(15)
             except Exception as e:
-                logging.error(f"❌ خطأ في تشغيل البوت: {e}")
-                logging.info("سيتم إعادة محاولة تشغيل البوت بعد 60 ثانية لمنع استهلاك المعالج...")
+                logging.error(f"❌ خطأ في تشغيل البوت: {e} - main.py:1136")
+                logging.info("سيتم إعادة محاولة تشغيل البوت بعد 60 ثانية لمنع استهلاك المعالج... - main.py:1137")
                 await asyncio.sleep(60)
 
 # ==========================================
-# 4. المنفذ الرئيسي (Main Executor) - تم إصلاح الربط على 0.0.0.0
+# 4. المنفذ الرئيسي (Main Executor)
 # ==========================================
 async def main():
-    logging.info("🚀 بدء تشغيل التطبيق...")
+    logging.info("🚀 بدء تشغيل التطبيق... - main.py:1144")
     os.makedirs(UPLOADS_DIR, exist_ok=True)
 
     web_app_instance = WebServer(db)
@@ -1143,25 +1155,23 @@ async def main():
     runner = web.AppRunner(app)
     await runner.setup()
     
-    # إصلاح خطأ Render: الربط على 0.0.0.0 إلزامي واستخدام PORT من البيئة
     port = int(os.environ.get("PORT", 10000))
     site = web.TCPSite(runner, '0.0.0.0', port)
     
     try:
         await site.start()
-        logging.info(f"✅ خادم الويب يستمع فعلياً على 0.0.0.0:{port}")
+        logging.info(f"✅ خادم الويب يستمع فعلياً على 0.0.0.0:{port} - main.py:1163")
     except Exception as e:
-        logging.critical(f"❌ فشل تشغيل خادم الويب: {e}")
+        logging.critical(f"❌ فشل تشغيل خادم الويب: {e} - main.py:1165")
         return
 
-    # تشغيل البوت في نفس الـ event loop (بدون خيوط منفصلة لتفادي مشاكل Python 3.14)
     asyncio.create_task(bot_instance.run_background())
     
     try:
         while True:
             await asyncio.sleep(3600)
     except Exception as e:
-        logging.critical(f"❌ خطأ قاتل في حلقة الأحداث: {e}")
+        logging.critical(f"❌ خطأ قاتل في حلقة الأحداث: {e} - main.py:1174")
     finally:
         await runner.cleanup()
         await bot_instance.bot.session.close()
@@ -1170,6 +1180,6 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
-        logging.info("⛔ تم إيقاف التطبيق")
+        logging.info("⛔ تم إيقاف التطبيق - main.py:1183")
     except Exception:
         logging.critical(traceback.format_exc())
