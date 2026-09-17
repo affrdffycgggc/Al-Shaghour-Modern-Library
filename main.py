@@ -34,7 +34,7 @@ _data_lock = threading.RLock()
 try:
     os.makedirs(UPLOADS_DIR, exist_ok=True)
 except Exception as e:
-    logging.warning(f"تعذر إنشاء مجلد الرفعات: {e}")
+    logging.warning(f"تعذر إنشاء مجلد الرفعات: {e} - main.py:37")
 
 DEFAULT_LOGO = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyMDAiIGZpbGw9IiMwRjBGMEYiLz48Y2lyY2xlIGN4PSIxMDAiIGN5PSIxMDAiIHI9IjkwIiBzdHJva2U9IiNDOUE5NjEiIHN0cm9rZS13aWR0aD0iMyIvPjxwYXRoIGQ9Ik02MCA2MEwxMDAgODBMMTQwIDYwVjE0MEwxMDAgMTIwTDYwIDE0MFoiIGZpbGw9IiNDOUE5NjEiLz48cmVjdCB4PSI5NiIgeT0iNjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgwIiBmaWxsPSIjMEYwRjBGIi8+PC9zdmc+"
 
@@ -61,7 +61,7 @@ class Database:
                                 self._memory_db[key] = val
                         return self._memory_db
                 except Exception:
-                    logging.warning("ملف البيانات تالف. سيتم إنشاء بيانات افتراضية.")
+                    logging.warning("ملف البيانات تالف. سيتم إنشاء بيانات افتراضية. - main.py:64")
             
             self._memory_db = self._default_data()
             self._write_to_disk(self._memory_db)
@@ -77,7 +77,7 @@ class Database:
             with open(DB_FILE, 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=4)
         except Exception:
-            logging.warning("تعذر الكتابة على القرص. سيتم استخدام الذاكرة المؤقتة.")
+            logging.warning("تعذر الكتابة على القرص. سيتم استخدام الذاكرة المؤقتة. - main.py:80")
 
     def _default_data(self):
         return {
@@ -1186,14 +1186,17 @@ class WebServer:
 
         categories_json = json.dumps(data.get("categories", []), ensure_ascii=False)
 
-        offers_html = "".join([
-            f'<div class="offer-card" onclick="window.open(\'https://wa.me/{data.get("contacts",{}).get("whatsapp","")}?text=اريد الاستفسار عن: {html.escape(o["title"]}\', \'_blank\')">'
-            f'<div class="offer-img"><span class="offer-badge">عرض خاص</span><img src="{o["img"]}" alt="{html.escape(o["title"])}"></div>'
-            f'<div class="offer-info"><h3>{html.escape(o["title"])}</h3>'
-            f'<p>{html.escape(o["desc"])}</p>'
-            f'<p class="offer-price">{html.escape(o["price"])}</p></div></div>'
-            for o in data.get("offers", [])
-        ])
+        wa_number = str(data.get("contacts", {}).get("whatsapp", ""))
+        offers_html_parts = []
+        for o in data.get("offers", []):
+            title_esc = html.escape(str(o.get("title", "")))
+            desc_esc = html.escape(str(o.get("desc", "")))
+            price_esc = html.escape(str(o.get("price", "")))
+            img_url = str(o.get("img", ""))
+            offers_html_parts.append(
+                f"""<div class="offer-card" onclick="window.open('https://wa.me/{wa_number}?text=اريد الاستفسار عن: {title_esc}', '_blank')"><div class="offer-img"><span class="offer-badge">عرض خاص</span><img src="{img_url}" alt="{title_esc}"></div><div class="offer-info"><h3>{title_esc}</h3><p>{desc_esc}</p><p class="offer-price">{price_esc}</p></div></div>"""
+            )
+        offers_html = "".join(offers_html_parts)
 
         notifications_json = json.dumps(data.get("notifications", []), ensure_ascii=False)
 
@@ -1230,7 +1233,7 @@ class WebServer:
             html_content = await asyncio.to_thread(self.generate_html)
             return web.Response(text=html_content, content_type='text/html')
         except Exception as e:
-            logging.error(f"خطأ في توليد الصفحة: {traceback.format_exc()}")
+            logging.error(f"خطأ في توليد الصفحة: {traceback.format_exc()} - main.py:1236")
             return web.Response(text="Internal Server Error", status=500)
 
     async def handle_api_notifications(self, request):
@@ -1240,7 +1243,7 @@ class WebServer:
             notifications = [n for n in data.get("notifications", []) if float(n.get("timestamp", 0)) > since]
             return web.json_response({"notifications": notifications})
         except Exception as e:
-            logging.error(f"خطأ في API الإشعارات: {e}")
+            logging.error(f"خطأ في API الإشعارات: {e} - main.py:1246")
             return web.json_response({"notifications": [], "error": str(e)}, status=500)
 
     async def handle_uploads(self, request):
@@ -1881,20 +1884,20 @@ class TelegramBot:
         while True:
             try:
                 await self.bot.delete_webhook(drop_pending_updates=True)
-                logging.info("🤖 البوت يعمل بشكل سليم ويراقب الرسائل...")
+                logging.info("🤖 البوت يعمل بشكل سليم ويراقب الرسائل... - main.py:1887")
                 await self.dp.start_polling(self.bot, handle_signals=False)
-                logging.info("Polling stopped normally. Restarting in 15 seconds...")
+                logging.info("Polling stopped normally. Restarting in 15 seconds... - main.py:1889")
                 await asyncio.sleep(15)
             except Exception as e:
-                logging.error(f"❌ خطأ في تشغيل البوت: {e}")
-                logging.info("سيتم إعادة محاولة تشغيل البوت بعد 60 ثانية...")
+                logging.error(f"❌ خطأ في تشغيل البوت: {e} - main.py:1892")
+                logging.info("سيتم إعادة محاولة تشغيل البوت بعد 60 ثانية... - main.py:1893")
                 await asyncio.sleep(60)
 
 # ==========================================
 # 4. المنفذ الرئيسي (Main Executor)
 # ==========================================
 async def main():
-    logging.info("🚀 بدء تشغيل التطبيق...")
+    logging.info("🚀 بدء تشغيل التطبيق... - main.py:1900")
     os.makedirs(UPLOADS_DIR, exist_ok=True)
 
     web_app_instance = WebServer(db)
@@ -1914,9 +1917,9 @@ async def main():
 
     try:
         await site.start()
-        logging.info(f"✅ خادم الويب يستمع فعلياً على 0.0.0.0:{port}")
+        logging.info(f"✅ خادم الويب يستمع فعلياً على 0.0.0.0:{port} - main.py:1920")
     except Exception as e:
-        logging.critical(f"❌ فشل تشغيل خادم الويب: {e}")
+        logging.critical(f"❌ فشل تشغيل خادم الويب: {e} - main.py:1922")
         return
 
     asyncio.create_task(bot_instance.run_background())
@@ -1925,7 +1928,7 @@ async def main():
         while True:
             await asyncio.sleep(3600)
     except Exception as e:
-        logging.critical(f"❌ خطأ قاتل في حلقة الأحداث: {e}")
+        logging.critical(f"❌ خطأ قاتل في حلقة الأحداث: {e} - main.py:1931")
     finally:
         await runner.cleanup()
         await bot_instance.bot.session.close()
@@ -1934,6 +1937,6 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
-        logging.info("⛔ تم إيقاف التطبيق")
+        logging.info("⛔ تم إيقاف التطبيق - main.py:1940")
     except Exception:
         logging.critical(traceback.format_exc())
