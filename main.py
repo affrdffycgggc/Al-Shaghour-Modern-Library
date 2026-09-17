@@ -16,7 +16,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.storage.memory import MemoryStorage
 
-# ================= إعدادات التسجيل (Logging) =================
+# ================= إعدادات التسجيل =================
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -54,14 +54,13 @@ class Database:
                 try:
                     with open(DB_FILE, 'r', encoding='utf-8') as f:
                         self._memory_db = json.load(f)
-                        # التأكد من وجود جميع الحقول الجديدة
                         defaults = self._default_data()
                         for key, val in defaults.items():
                             if key not in self._memory_db:
                                 self._memory_db[key] = val
                         return self._memory_db
                 except Exception:
-                    logging.warning("ملف البيانات تالف. سيتم إنشاء بيانات افتراضية. - main.py:64")
+                    logging.warning("ملف البيانات تالف. سيتم إنشاء بيانات افتراضية. - main.py:63")
             
             self._memory_db = self._default_data()
             self._write_to_disk(self._memory_db)
@@ -77,7 +76,7 @@ class Database:
             with open(DB_FILE, 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=4)
         except Exception:
-            logging.warning("تعذر الكتابة على القرص. سيتم استخدام الذاكرة المؤقتة. - main.py:80")
+            logging.warning("تعذر الكتابة على القرص. سيتم استخدام الذاكرة المؤقتة. - main.py:79")
 
     def _default_data(self):
         return {
@@ -219,13 +218,11 @@ class WebServer:
         html { scroll-behavior: smooth; overflow-x: hidden; }
         body { background: var(--dark-bg); color: var(--text-light); font-family: 'Cairo', sans-serif; transition: background 0.5s, color 0.5s; overflow-x: hidden; max-width: 100vw; position: relative; }
 
-        /* ===== Scrollbar مخصص ===== */
         ::-webkit-scrollbar { width: 10px; }
         ::-webkit-scrollbar-track { background: var(--dark-bg-2); }
         ::-webkit-scrollbar-thumb { background: var(--primary-gold-dark); border-radius: 5px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--primary-gold); }
 
-        /* ===== الخلفية المتحركة ===== */
         #particles-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
         .gradient-orb { position: fixed; border-radius: 50%; filter: blur(100px); opacity: 0.15; z-index: -1; pointer-events: none; }
         .orb-1 { width: 500px; height: 500px; background: var(--primary-gold); top: -200px; right: -200px; animation: orbFloat1 20s ease-in-out infinite; }
@@ -235,29 +232,102 @@ class WebServer:
 
         .scroll-progress { position: fixed; top: 0; left: 0; width: 0%; height: 3px; background: linear-gradient(90deg, var(--primary-gold-dark), var(--primary-gold-light)); z-index: 1002; transition: width 0.1s; box-shadow: 0 0 10px var(--primary-gold); }
 
-        /* ===== شاشة التحميل ===== */
-        .dev-loader { position: fixed; inset: 0; background: #050505; z-index: 10000; display: flex; justify-content: center; align-items: center; flex-direction: column; transition: opacity 0.8s ease, visibility 0.8s ease; overflow: hidden; padding: 20px; }
+        /* ===== شاشة التحميل الحديثة (الكتاب المتقلب 3D) ===== */
+        .dev-loader { 
+            position: fixed; inset: 0; background: #050505; z-index: 10000; 
+            display: flex; justify-content: center; align-items: center; flex-direction: column; 
+            transition: opacity 0.8s ease, visibility 0.8s ease; overflow: hidden; 
+            perspective: 2000px; padding: 20px;
+        }
         .dev-loader.hidden { opacity: 0; visibility: hidden; }
-        .dev-loader::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(transparent 90%, rgba(201, 169, 97, 0.05) 80%); background-size: 100% 4px; animation: scanlines 8s linear infinite; pointer-events: none; }
-        @keyframes scanlines { 0% { background-position: 0 0; } 100% { background-position: 0 100%; } }
+        .dev-loader::before { 
+            content: ''; position: absolute; width: 100%; height: 100%; 
+            background: radial-gradient(circle at center, rgba(201, 169, 97, 0.1), transparent 60%); 
+            animation: pulseGlow 4s ease-in-out infinite; 
+        }
+        @keyframes pulseGlow { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
 
-        .dev-loader-box { width: 100%; max-width: 500px; background: rgba(10, 10, 10, 0.9); border: 1px solid var(--primary-gold-dark); border-radius: 12px; box-shadow: 0 0 40px rgba(201, 169, 97, 0.15); overflow: hidden; backdrop-filter: blur(10px); }
-        .dev-loader-header { background: rgba(201, 169, 97, 0.1); padding: 8px 15px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border-color); }
-        .dev-dots { display: flex; gap: 6px; }
-        .dev-dots span { width: 10px; height: 10px; border-radius: 50%; background: var(--primary-gold-dark); opacity: 0.7; }
-        .dev-loader-title { font-family: 'Share Tech Mono', monospace; color: var(--primary-gold); font-size: 12px; margin-right: auto; letter-spacing: 1px; }
+        /* مشهد الكتاب ثلاثي الأبعاد */
+        .book-scene { 
+            width: 220px; height: 320px; perspective: 1500px; margin-bottom: 60px; 
+            transform-style: preserve-3d;
+        }
+        .book-3d { 
+            width: 100%; height: 100%; position: relative; 
+            transform-style: preserve-3d; transform: rotateX(25deg) rotateY(0deg); 
+        }
+        
+        /* الغلاف والصفحات */
+        .book-cover, .book-page { 
+            position: absolute; width: 100%; height: 100%; top: 0; left: 0; 
+            transform-origin: left center; border-radius: 2px 8px 8px 2px; 
+            backface-visibility: hidden;
+        }
+        
+        .book-cover { 
+            background: linear-gradient(135deg, #1a1a1a, #0a0a0a);
+            border: 1px solid var(--primary-gold-dark);
+            box-shadow: 0 0 30px rgba(201, 169, 97, 0.3), inset 0 0 20px rgba(0,0,0,0.8);
+            transform: rotateY(0deg); z-index: 10; 
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+        .book-cover h2 { 
+            font-family: 'Amiri', serif; color: var(--primary-gold); font-size: 22px; 
+            text-align: center; text-shadow: 0 0 15px rgba(201, 169, 97, 0.6); margin-bottom: 15px; 
+            border-bottom: 1px solid var(--primary-gold-dark); padding-bottom: 10px;
+        }
+        .book-cover .book-emblem { 
+            width: 50px; height: 50px; border: 2px solid var(--primary-gold); 
+            border-radius: 50%; display: flex; justify-content: center; align-items: center; 
+            color: var(--primary-gold); font-size: 24px; box-shadow: 0 0 15px rgba(201, 169, 97, 0.4);
+        }
 
-        .dev-loader-content { padding: 25px; font-family: 'Share Tech Mono', monospace; }
-        .dev-log { color: var(--primary-gold-light); font-size: 13px; margin-bottom: 6px; display: flex; align-items: center; gap: 10px; opacity: 0; transform: translateY(10px); animation: logAppear 0.4s forwards; }
-        .dev-log::before { content: '>'; color: var(--primary-gold); }
-        .dev-log.success::before { content: '\\2713'; color: #2ecc71; }
-        .dev-log.error::before { content: '\\2717'; color: #e74c3c; }
-        @keyframes logAppear { to { opacity: 1; transform: translateY(0); } }
+        /* الصفحات الداخلية (ورق فاخر) */
+        .book-page { 
+            background: linear-gradient(to right, #f0e6d2, #e0d4b8); 
+            width: 218px; height: 318px; 
+            border: 1px solid rgba(0,0,0,0.1);
+            transform: rotateY(0deg); 
+            box-shadow: inset 5px 0 15px rgba(0,0,0,0.1), 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .book-page::after { 
+            content: ''; position: absolute; top: 15%; left: 20%; width: 60%; height: 2px; 
+            background: rgba(155, 125, 63, 0.2); 
+            box-shadow: 0 15px 0 rgba(155, 125, 63, 0.2), 0 30px 0 rgba(155, 125, 63, 0.2), 0 45px 0 rgba(155, 125, 63, 0.2), 0 60px 0 rgba(155, 125, 63, 0.2); 
+        }
 
-        .dev-progress-wrap { margin-top: 20px; border-top: 1px dashed var(--border-color); padding-top: 15px; }
-        .dev-progress-bar { width: 100%; height: 6px; background: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden; }
-        .dev-progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, transparent, var(--primary-gold), var(--primary-gold-light)); box-shadow: 0 0 15px var(--primary-gold); transition: width 0.2s ease-out; }
-        .dev-percent { text-align: right; color: #fff; font-size: 12px; margin-top: 5px; display: block; }
+        /* عمود الكتاب (الصلب) */
+        .book-spine { 
+            position: absolute; width: 25px; height: 100%; left: -12px; 
+            background: linear-gradient(to right, #050505, #1a1a1a); 
+            transform-origin: right center; transform: rotateY(90deg) translateZ(0); z-index: 5; 
+            box-shadow: 0 0 10px rgba(0,0,0,0.8);
+        }
+
+        /* ضوء ساطع يخرج من الكتاب */
+        .book-light { 
+            position: absolute; left: 0; top: 50%; width: 10px; height: 0px; 
+            background: var(--primary-gold-light); 
+            box-shadow: 0 0 50px 20px var(--primary-gold), 0 0 100px 40px var(--primary-gold-dark); 
+            transform: translateY(-50%); opacity: 0; z-index: 1; 
+        }
+
+        /* شريط التحميل بحبر سحري */
+        .magic-loader-container { width: 300px; text-align: center; z-index: 2; }
+        .magic-loader-title { font-family: 'Cairo'; color: var(--primary-gold-light); font-size: 14px; margin-bottom: 15px; letter-spacing: 1px; }
+        .magic-progress-bar { 
+            width: 100%; height: 4px; background: rgba(255,255,255,0.05); 
+            border-radius: 2px; overflow: hidden; position: relative; 
+        }
+        .magic-progress-fill { 
+            position: absolute; left: 0; top: 0; height: 100%; width: 0%; 
+            background: linear-gradient(90deg, var(--primary-gold-dark), var(--primary-gold-light)); 
+            box-shadow: 0 0 15px var(--primary-gold); transition: width 0.3s ease; 
+        }
+        .magic-percent { 
+            font-family: 'Share Tech Mono', monospace; color: var(--primary-gold); 
+            font-size: 14px; margin-top: 10px; font-weight: bold; letter-spacing: 1px; 
+        }
 
         /* ===== شريط الإعلان ===== */
         .top-bar { position: fixed; top: 0; left: 0; width: 100%; z-index: 1001; background: linear-gradient(90deg, #0a0a0a, #141414, #0a0a0a); border-bottom: 1px solid var(--border-color); box-shadow: 0 2px 15px rgba(0,0,0,0.5); overflow: hidden; height: 35px; display: flex; align-items: center; }
@@ -370,7 +440,7 @@ class WebServer:
         .section-header h2 span { color: var(--primary-gold); }
         .section-header h2::after { content: ''; position: absolute; bottom: -10px; left: 50%; transform: translateX(-50%); width: 60px; height: 3px; background: var(--primary-gold); box-shadow: 0 0 10px var(--primary-gold); }
 
-        /* ===== شبكة الأقسام (عمودين بجانب بعض) ===== */
+        /* ===== شبكة الأقسام ===== */
         .categories-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 25px; }
         .category-card { background: var(--glass-bg); border: 1px solid var(--border-color); border-radius: 16px; overflow: hidden; transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); position: relative; cursor: pointer; will-change: transform; }
         .category-card::before { content: ''; position: absolute; inset: 0; border-radius: 16px; padding: 1px; background: radial-gradient(300px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(201, 169, 97, 0.8), transparent 40%); -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; opacity: 0; transition: opacity 0.3s; z-index: 2; pointer-events: none; }
@@ -496,6 +566,7 @@ class WebServer:
             .info-item { min-width: 100%; }
             .notif-dropdown { width: calc(100vw - 40px); left: 10px; right: 10px; }
             .toast-container { right: 10px; left: 10px; max-width: none; }
+            .book-scene { width: 180px; height: 260px; }
         }
 
         @media (max-width: 480px) {
@@ -511,24 +582,27 @@ class WebServer:
     <div class="gradient-orb orb-2"></div>
     <div class="scroll-progress" id="scrollProgress"></div>
 
-    <!-- شاشة التحميل -->
+    <!-- شاشة التحميل الحديثة (الكتاب 3D) -->
     <div class="dev-loader" id="devLoader">
-        <div class="dev-loader-box">
-            <div class="dev-loader-header">
-                <div class="dev-dots"><span></span><span></span><span></span></div>
-                <p class="dev-loader-title">SYSTEM_INIT.exe</p>
-            </div>
-            <div class="dev-loader-content">
-                <div class="dev-log" style="animation-delay: 0.1s">Initializing Core Modules...</div>
-                <div class="dev-log success" style="animation-delay: 0.4s">Core Modules Loaded</div>
-                <div class="dev-log" style="animation-delay: 0.7s">Fetching Assets from Database...</div>
-                <div class="dev-log success" style="animation-delay: 1.0s">Assets Synced</div>
-                <div class="dev-log" style="animation-delay: 1.3s">Rendering UI Components...</div>
-                <div class="dev-progress-wrap">
-                    <div class="dev-progress-bar"><div class="dev-progress-fill" id="devBarFill"></div></div>
-                    <span class="dev-percent" id="devPercent">0%</span>
+        <div class="book-scene">
+            <div class="book-3d" id="book3D">
+                <div class="book-spine"></div>
+                <div class="book-page" id="page5" style="z-index:5"></div>
+                <div class="book-page" id="page4" style="z-index:6"></div>
+                <div class="book-page" id="page3" style="z-index:7"></div>
+                <div class="book-page" id="page2" style="z-index:8"></div>
+                <div class="book-page" id="page1" style="z-index:9"></div>
+                <div class="book-light" id="bookLight"></div>
+                <div class="book-cover" id="bookCover">
+                    <div class="book-emblem"><i class="fas fa-book-open"></i></div>
+                    <h2>مكتبة الشاغور<br>الحديثة</h2>
                 </div>
             </div>
+        </div>
+        <div class="magic-loader-container">
+            <div class="magic-loader-title">جاري فتح أبواب المعرفة...</div>
+            <div class="magic-progress-bar"><div class="magic-progress-fill" id="magicFill"></div></div>
+            <div class="magic-percent" id="magicPercent">0%</div>
         </div>
     </div>
 
@@ -702,25 +776,89 @@ class WebServer:
         let lastNotifTimestamp = 0;
         let unreadNotifCount = 0;
 
-        // ===== شاشة التحميل =====
-        let devProgress = 0;
+        // ===== شاشة التحميل الحديثة (الكتاب المتقلب 3D) =====
         const devLoader = document.getElementById('devLoader');
-        const devPercentText = document.getElementById('devPercent');
-        const devBarFill = document.getElementById('devBarFill');
-        const devInterval = setInterval(() => {
-            devProgress += Math.random() * 15 + 5;
-            if (devProgress >= 100) {
-                devProgress = 100;
-                clearInterval(devInterval);
-                devPercentText.innerText = '100%';
-                devBarFill.style.width = '100%';
-                setTimeout(() => { devLoader.classList.add('hidden'); }, 800);
-            } else {
-                devPercentText.innerText = Math.floor(devProgress) + '%';
-                devBarFill.style.width = devProgress + '%';
+        const magicFill = document.getElementById('magicFill');
+        const magicPercent = document.getElementById('magicPercent');
+        const book3D = document.getElementById('book3D');
+        const bookCover = document.getElementById('bookCover');
+        const bookLight = document.getElementById('bookLight');
+        
+        let progress = 0;
+        
+        // التأثيرات الحركية باستخدام GSAP
+        const loadingTl = gsap.timeline({ onComplete: () => {
+            // إخفاء شاشة التحميل بانسيابية بعد اكتمال فتح الكتاب
+            gsap.to(devLoader, { opacity: 0, duration: 1, ease: 'power2.out', onComplete: () => devLoader.classList.add('hidden') });
+        }});
+
+        // 1. ظهور الكتاب ودورانه بلطف
+        loadingTl.from(book3D, { rotateX: 90, opacity: 0, duration: 1.2, ease: 'power3.out' });
+        
+        // 2. فتح غلاف الكتاب
+        loadingTl.to(bookCover, { 
+            rotateY: -160, duration: 1.8, ease: 'power3.inOut', 
+            onStart: () => {
+                // إضاءة الصفحات أثناء فتح الغلاف
+                gsap.to(bookLight, { opacity: 1, height: '100%', duration: 1.5, ease: 'power2.out' });
             }
-        }, 200);
-        setTimeout(() => { devLoader.classList.add('hidden'); }, 5000);
+        }, "-=0.5");
+        
+        // 3. وميض الضوء المستمر
+        loadingTl.to(bookLight, { opacity: 0.6, duration: 0.8, yoyo: true, repeat: -1, ease: 'sine.inOut' }, ">");
+
+        // 4. قلب الصفحات بشكل تسلسلي واقعي
+        const pages = ['page1', 'page2', 'page3', 'page4', 'page5'];
+        let pageIdx = 0;
+
+        const flipInterval = setInterval(() => {
+            if (pageIdx < pages.length) {
+                const pageEl = document.getElementById(pages[pageIdx]);
+                gsap.to(pageEl, { 
+                    rotateY: -160, 
+                    duration: 1.2, 
+                    ease: 'power2.inOut',
+                    onStart: () => {
+                        // تعديل الترتيب لتغليب الصفحة المفتوحة
+                        pageEl.style.zIndex = 20 - pageIdx;
+                    }
+                });
+                pageIdx++;
+            } else {
+                clearInterval(flipInterval);
+            }
+        }, 900);
+
+        // 5. تحديث شريط التحميل والنسبة المئوية
+        const progressInterval = setInterval(() => {
+            progress += Math.random() * 8 + 2; // سرعة تحميل متفاوتة بشكل طبيعي
+            if (progress >= 100) {
+                progress = 100;
+                clearInterval(progressInterval);
+                clearInterval(flipInterval); // إيقاف قلب الصفحات
+                
+                // قلب أي صفحات متبقية فوراً قبل الإخفاء
+                for(let i = pageIdx; i < pages.length; i++) {
+                    gsap.to(`#${pages[i]}`, { rotateY: -160, duration: 0.5, ease: 'power2.inOut', onStart: () => document.getElementById(pages[i]).style.zIndex = 20 - i });
+                }
+                
+                magicPercent.innerText = '100%';
+                magicFill.style.width = '100%';
+                
+                // إكمال الأنميشن لإخفاء الشاشة
+                loadingTl.play();
+            } else {
+                magicPercent.innerText = Math.floor(progress) + '%';
+                magicFill.style.width = progress + '%';
+            }
+        }, 300);
+
+        // أمان: إخفاء شاشة التحميل بعد 8 ثواني كحد أقصى في حال حدوث أي خطأ
+        setTimeout(() => {
+            if (!devLoader.classList.contains('hidden')) {
+                devLoader.classList.add('hidden');
+            }
+        }, 8000);
 
         // ===== تحميل البيانات =====
         try {
@@ -879,7 +1017,6 @@ class WebServer:
             const cat = categoriesData.find(c => c.id === catId);
             if (!cat) return;
 
-            // إخفاء الأقسام الرئيسية
             document.getElementById('categories').style.display = 'none';
             document.getElementById('offers').style.display = 'none';
             document.getElementById('video').style.display = 'none';
@@ -888,16 +1025,13 @@ class WebServer:
             document.querySelector('.main-slider').style.display = 'none';
             document.querySelector('.wave-divider').style.display = 'none';
 
-            // إظهار صفحة المنتجات
             const productsView = document.getElementById('productsView');
             productsView.classList.add('active');
 
-            // تعيين العنوان والصورة
             document.getElementById('productsViewTitle').innerText = cat.name;
             document.getElementById('productsViewBannerImg').src = cat.img;
             document.getElementById('productsViewBannerTitle').innerText = cat.name;
 
-            // عرض المنتجات
             const grid = document.getElementById('productsGrid');
             if (cat.products && cat.products.length > 0) {
                 grid.innerHTML = cat.products.map(p => `
@@ -921,10 +1055,7 @@ class WebServer:
                 `;
             }
 
-            // إعادة ربط تأثيرات البطاقات
             attachCardEffects();
-
-            // التمرير للأعلى
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
@@ -1053,15 +1184,12 @@ class WebServer:
             }, 5000);
         }
 
-        // إضافة CSS للأنميشن
         const styleEl = document.createElement('style');
         styleEl.textContent = `@keyframes shrinkBar { from { transform: scaleX(1); } to { transform: scaleX(0); } }`;
         document.head.appendChild(styleEl);
 
-        // عرض الإشعارات الأولية
         renderNotifications();
 
-        // جلب الإشعارات الجديدة كل 30 ثانية
         async function fetchNewNotifications() {
             try {
                 const response = await fetch(`/api/notifications?since=${lastNotifTimestamp}`);
@@ -1087,7 +1215,6 @@ class WebServer:
             let input = document.getElementById('searchInput').value.toLowerCase().trim();
             if (input === '') return;
 
-            // البحث في جميع المنتجات
             let results = [];
             categoriesData.forEach(cat => {
                 (cat.products || []).forEach(p => {
@@ -1098,7 +1225,6 @@ class WebServer:
             });
 
             if (results.length > 0) {
-                // عرض النتائج في صفحة المنتجات
                 document.getElementById('categories').style.display = 'none';
                 document.getElementById('offers').style.display = 'none';
                 document.getElementById('video').style.display = 'none';
@@ -1131,7 +1257,6 @@ class WebServer:
             }
         }
 
-        // إعادة تعيين البحث عند المسح
         document.getElementById('searchInput').addEventListener('input', function() {
             if (this.value === '' && document.getElementById('productsView').classList.contains('active')) {
                 goBackToCategories();
@@ -1233,7 +1358,7 @@ class WebServer:
             html_content = await asyncio.to_thread(self.generate_html)
             return web.Response(text=html_content, content_type='text/html')
         except Exception as e:
-            logging.error(f"خطأ في توليد الصفحة: {traceback.format_exc()} - main.py:1236")
+            logging.error(f"خطأ في توليد الصفحة: {traceback.format_exc()} - main.py:1361")
             return web.Response(text="Internal Server Error", status=500)
 
     async def handle_api_notifications(self, request):
@@ -1243,7 +1368,7 @@ class WebServer:
             notifications = [n for n in data.get("notifications", []) if float(n.get("timestamp", 0)) > since]
             return web.json_response({"notifications": notifications})
         except Exception as e:
-            logging.error(f"خطأ في API الإشعارات: {e} - main.py:1246")
+            logging.error(f"خطأ في API الإشعارات: {e} - main.py:1371")
             return web.json_response({"notifications": [], "error": str(e)}, status=500)
 
     async def handle_uploads(self, request):
@@ -1795,7 +1920,6 @@ class TelegramBot:
                     "type": "info",
                     "timestamp": time.time()
                 })
-                # الاحتفاظ بآخر 50 إشعار فقط
                 if len(data["notifications"]) > 50:
                     data["notifications"] = data["notifications"][-50:]
                 self.db.save(data)
@@ -1884,20 +2008,20 @@ class TelegramBot:
         while True:
             try:
                 await self.bot.delete_webhook(drop_pending_updates=True)
-                logging.info("🤖 البوت يعمل بشكل سليم ويراقب الرسائل... - main.py:1887")
+                logging.info("🤖 البوت يعمل بشكل سليم ويراقب الرسائل... - main.py:2011")
                 await self.dp.start_polling(self.bot, handle_signals=False)
-                logging.info("Polling stopped normally. Restarting in 15 seconds... - main.py:1889")
+                logging.info("Polling stopped normally. Restarting in 15 seconds... - main.py:2013")
                 await asyncio.sleep(15)
             except Exception as e:
-                logging.error(f"❌ خطأ في تشغيل البوت: {e} - main.py:1892")
-                logging.info("سيتم إعادة محاولة تشغيل البوت بعد 60 ثانية... - main.py:1893")
+                logging.error(f"❌ خطأ في تشغيل البوت: {e} - main.py:2016")
+                logging.info("سيتم إعادة محاولة تشغيل البوت بعد 60 ثانية... - main.py:2017")
                 await asyncio.sleep(60)
 
 # ==========================================
 # 4. المنفذ الرئيسي (Main Executor)
 # ==========================================
 async def main():
-    logging.info("🚀 بدء تشغيل التطبيق... - main.py:1900")
+    logging.info("🚀 بدء تشغيل التطبيق... - main.py:2024")
     os.makedirs(UPLOADS_DIR, exist_ok=True)
 
     web_app_instance = WebServer(db)
@@ -1917,9 +2041,9 @@ async def main():
 
     try:
         await site.start()
-        logging.info(f"✅ خادم الويب يستمع فعلياً على 0.0.0.0:{port} - main.py:1920")
+        logging.info(f"✅ خادم الويب يستمع فعلياً على 0.0.0.0:{port} - main.py:2044")
     except Exception as e:
-        logging.critical(f"❌ فشل تشغيل خادم الويب: {e} - main.py:1922")
+        logging.critical(f"❌ فشل تشغيل خادم الويب: {e} - main.py:2046")
         return
 
     asyncio.create_task(bot_instance.run_background())
@@ -1928,7 +2052,7 @@ async def main():
         while True:
             await asyncio.sleep(3600)
     except Exception as e:
-        logging.critical(f"❌ خطأ قاتل في حلقة الأحداث: {e} - main.py:1931")
+        logging.critical(f"❌ خطأ قاتل في حلقة الأحداث: {e} - main.py:2055")
     finally:
         await runner.cleanup()
         await bot_instance.bot.session.close()
@@ -1937,6 +2061,6 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
-        logging.info("⛔ تم إيقاف التطبيق - main.py:1940")
+        logging.info("⛔ تم إيقاف التطبيق - main.py:2064")
     except Exception:
         logging.critical(traceback.format_exc())
