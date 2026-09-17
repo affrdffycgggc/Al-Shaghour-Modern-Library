@@ -618,7 +618,7 @@ class WebServer:
         try:
             return web.Response(text=self.generate_html(), content_type='text/html')
         except Exception as e:
-            logging.error(f"خطأ في توليد الصفحة: {e} - main.py:621")
+            logging.error(f"خطأ في توليد الصفحة: {e} - main.py:566")
             return web.Response(text="Internal Server Error", status=500)
 
     async def handle_uploads(self, request):
@@ -1084,25 +1084,25 @@ class TelegramBot:
         while True:
             try:
                 await self.bot.delete_webhook(drop_pending_updates=True)
-                logging.info("🤖 البوت يعمل بشكل سليم ويراقب الرسائل... - main.py:1087")
+                logging.info("🤖 البوت يعمل بشكل سليم ويراقب الرسائل... - main.py:1036")
                 await self.dp.start_polling(self.bot, handle_signals=False)
-                logging.info("Polling stopped normally. Restarting in 15 seconds... - main.py:1089")
+                logging.info("Polling stopped normally. Restarting in 15 seconds... - main.py:1039")
                 await asyncio.sleep(15)
             except Exception as e:
-                logging.error(f"❌ خطأ في تشغيل البوت (ربما شبكة الاستضافة تمنع تيليجرام): {e} - main.py:1092")
-                logging.info("سيتم إعادة محاولة تشغيل البوت بعد 60 ثانية لمنع استهلاك المعالج (Code 137)... - main.py:1093")
+                logging.error(f"❌ خطأ في تشغيل البوت (ربما شبكة الاستضافة تمنع تيليجرام): {e} - main.py:1042")
+                logging.info("سيتم إعادة محاولة تشغيل البوت بعد 60 ثانية لمنع استهلاك المعالج (Code 137)... - main.py:1043")
                 await asyncio.sleep(60) 
 
 # ==========================================
 # 4. المنفذ الرئيسي (Main Executor)
 # ==========================================
 async def main():
-    logging.info("🚀 بدء تشغيل التطبيق... - main.py:1100")
+    logging.info("🚀 بدء تشغيل التطبيق... - main.py:1050")
     if not os.path.exists(UPLOADS_DIR):
         try:
             os.makedirs(UPLOADS_DIR)
         except Exception as e:
-            logging.warning(f"تعذر إنشاء مجلد الرفعات عند الإقلاع: {e} - main.py:1105")
+            logging.warning(f"تعذر إنشاء مجلد الرفعات عند الإقلاع: {e} - main.py:1055")
 
     web_app_instance = WebServer(db)
     bot_instance = TelegramBot(db)
@@ -1115,14 +1115,15 @@ async def main():
     runner = web.AppRunner(app)
     await runner.setup()
     
-    port = int(os.getenv("PORT", 8080))
+    # تم تعديل هذا السطر ليتوافق مع Render وأي منصة سحابية بشكل ديناميكي
+    port = int(os.environ.get("PORT", 10000))
     site = web.TCPSite(runner, '0.0.0.0', port)
     
     try:
         await site.start()
-        logging.info(f"✅ خادم الويب يعمل بنجاح على المنفذ {port} - main.py:1123")
+        logging.info(f"✅ خادم الويب يعمل بنجاح على المنفذ {port} - main.py:1075")
     except Exception as e:
-        logging.error(f"❌ فشل تشغيل خادم الويب: {e} - main.py:1125")
+        logging.error(f"❌ فشل تشغيل خادم الويب: {e} - main.py:1077")
         return
 
     asyncio.create_task(bot_instance.run_background())
@@ -1131,7 +1132,7 @@ async def main():
         while True:
             await asyncio.sleep(3600)
     except Exception as e:
-        logging.error(f"❌ خطأ قاتل في حلقة الأحداث: {e} - main.py:1134")
+        logging.error(f"❌ خطأ قاتل في حلقة الأحداث: {e} - main.py:1088")
     finally:
         await runner.cleanup()
         await bot_instance.bot.session.close()
@@ -1140,7 +1141,7 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        logging.info("\nتم إيقاف البرنامج يدوياً. - main.py:1143")
+        logging.info("\nتم إيقاف البرنامج يدوياً. - main.py:1097")
     except Exception as e:
-        logging.error(f"❌ خطأ قاتل خارجي: {e} - main.py:1145")
+        logging.error(f"❌ خطأ قاتل خارجي: {e} - main.py:1099")
         traceback.print_exc()
